@@ -1,0 +1,44 @@
+name: Sync with Copybara
+
+on:
+  workflow_dispatch:
+  # También podrías activarlo en push o schedule
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout actual repo (donde está copy.bara.sky)
+        uses: actions/checkout@v4
+
+      - name: Install Java 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Install Bazel
+        uses: bazelbuild/setup-bazel@v4
+        with:
+          bazel-version: 6.5.0  # o el que prefieras
+
+      - name: Clone Copybara
+        run: |
+          git clone --depth 1 https://github.com/google/copybara.git
+          cd copybara
+          bazel build //java/com/google/copybara:copybara
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_ed25519
+
+      - name: Run Copybara
+        run: |
+          cd copybara
+          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
