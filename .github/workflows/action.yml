@@ -32,6 +32,11 @@ jobs:
           cd copybara
           bazel build //java/com/google/copybara
 
+      - name: Set Git identity
+        run: |
+          git config --global user.name "Julimax"
+          git config --global user.email "julimax951@gmail.com"
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
