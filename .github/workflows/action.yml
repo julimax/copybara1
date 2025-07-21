@@ -19,9 +19,9 @@ jobs:
           java-version: '11'
 
       - name: Install Bazel
-        uses: bazelbuild/setup-bazel@v4
+        uses: bazelbuild/setup-bazelisk@v1
         with:
-          bazel-version: 6.5.0  # o el que prefieras
+          bazel-version: 8.3.1
 
       - name: Clone Copybara
         run: |
