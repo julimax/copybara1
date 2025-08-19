@@ -29,10 +29,15 @@ jobs:
       # Si tu proyecto vive en subcarpeta, añade esto en los pasos que corren comandos:
       # working-directory: copybara1
       
-      - name: Verificar wrapper
+      - name: Bootstrap wrapper si falta
         run: |
-          test -f gradlew || { echo "Falta gradlew"; exit 1; }
-          test -d gradle/wrapper || { echo "Falta gradle/wrapper"; exit 1; }
+          if [ ! -f gradlew ]; then
+            sudo apt-get update && sudo apt-get install -y gradle
+            gradle wrapper --gradle-version 8.4 --distribution-type bin
+            chmod +x gradlew
+          fi
+
+    
       
       - name: Hacer ejecutable la wrapper
         run: chmod +x ./gradlew
