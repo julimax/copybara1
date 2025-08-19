@@ -1,0 +1,15 @@
+# Template for gradle.properties
+# Copy this file to gradle.properties and fill in your actual credentials
+
+# Maven Central (Sonatype) credentials
+ossrhUsername=your-sonatype-username
+ossrhPassword=your-sonatype-password
+
+# GPG signing credentials
+signing.keyId=your-gpg-key-id
+signing.password=your-gpg-password
+signing.secretKeyRingFile=/path/to/your/secring.gpg
+
+# Alternative: In-memory GPG signing (recommended for CI/CD)
+# signingKey=-----BEGIN PGP PRIVATE KEY BLOCK-----\n...\n-----END PGP PRIVATE KEY BLOCK-----
+# signingPassword=your-gpg-password
