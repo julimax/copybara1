@@ -1,4 +1,6 @@
 # copybara1 testing action! ########################################33
-test
-sdfsdfsf
-ascas
+
+
+kotlinc Main.kt -include-runtime -d main.jar
+java -jar main.jar
+kotlin MainKt
