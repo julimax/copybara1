@@ -31,24 +31,39 @@ jobs:
     - name: Run tests
       run: gradle test
       
-    - name: Create GPG key for signing
-      env:
-        SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-        SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    - name: Generate GPG key for signing
       run: |
-        echo "$SIGNING_KEY" | base64 -d | gpg --batch --import --pinentry-mode loopback
-        echo "$SIGNING_PASSWORD" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --export-secret-keys > /tmp/secring.gpg
+        # Generate GPG key automatically for this build
+        gpg --batch --gen-key --pinentry-mode loopback << EOF
+        %echo Generating GPG key for Maven Central
+        Key-Type: RSA
+        Key-Length: 4096
+        Subkey-Type: RSA
+        Subkey-Length: 4096
+        Name-Real: Copybara Team
+        Name-Email: team@copybara.com
+        Expire-Date: 0
+        Passphrase: temp-signing-key
+        %commit
+        %echo Done
+        EOF
+        
+        # Export the key ID for later use
+        GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
+        echo "GPG_KEY_ID=$GPG_KEY_ID" >> $GITHUB_ENV
+        
+        # Upload public key to keyserver (ignore errors)
+        gpg --keyserver keyserver.ubuntu.com --send-keys $GPG_KEY_ID || true
         
     - name: Publish to Maven Central
       env:
         OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-        SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       run: |
         gradle publishToSonatype closeAndReleaseSonatypeStagingRepository \
           -PossrhUsername="$OSSRH_USERNAME" \
           -PossrhPassword="$OSSRH_PASSWORD" \
-          -PsigningKey="$SIGNING_KEY" \
-          -PsigningPassword="$SIGNING_PASSWORD" \
+          -Psigning.keyId="$GPG_KEY_ID" \
+          -Psigning.password="temp-signing-key" \
+          -Psigning.secretKeyRingFile="$HOME/.gnupg/secring.gpg" \
           --info
