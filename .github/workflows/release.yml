@@ -11,23 +11,47 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Si usabas 'path: copybara1', mantenlo y añade working-directory en los pasos.
+      
+      - name: Diagnóstico rápido
+        run: |
+          echo "PWD=$(pwd)"
+          echo "Contenido:"
+          ls -la
+          echo "Buscar wrapper:"
+          ls -la gradlew || true
+          ls -la gradle/wrapper || true
+      
+      # Si tu proyecto vive en subcarpeta, añade esto en los pasos que corren comandos:
+      # working-directory: copybara1
+      
+      - name: Verificar wrapper
+        run: |
+          test -f gradlew || { echo "Falta gradlew"; exit 1; }
+          test -d gradle/wrapper || { echo "Falta gradle/wrapper"; exit 1; }
+      
+      - name: Hacer ejecutable la wrapper
+        run: chmod +x ./gradlew
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'   # para el release
-
-      - uses: gradle/actions/setup-gradle@v3
-
-      - name: Full release to Maven Central (JReleaser + Gradle)
+          java-version: '17'
+      
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+      
+      - name: Release (JReleaser)
         env:
-          # Token del Central Publisher Portal
           JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          # Firma PGP usada por el plugin 'signing' de Gradle
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
-        run: |
-          ./gradlew -Prelease clean jreleaserFullRelease
+        run: ./gradlew -Prelease clean jreleaserFullRelease
+        # working-directory: copybara1   # <-- descomenta si corresponde
+      
