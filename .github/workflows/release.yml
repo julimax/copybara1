@@ -60,6 +60,9 @@ jobs:
         OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       run: |
+        echo "user ${{ secrets.OSSRH_USERNAME }}"
+        echo "pass ${{ secrets.OSSRH_PASSWORD }}"
+
         gradle publishToSonatype closeAndReleaseSonatypeStagingRepository \
           -PossrhUsername="$OSSRH_USERNAME" \
           -PossrhPassword="$OSSRH_PASSWORD" \
