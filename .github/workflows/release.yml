@@ -14,7 +14,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # para crear el GitHub Release
+      contents: write      # necesario para crear el GitHub Release
 
     steps:
       - name: Checkout
@@ -30,11 +30,11 @@ jobs:
           ls -la gradlew || true
           ls -la gradle/wrapper || true
 
-      # (Opcional) Si tu proyecto está en subcarpeta, añade:
-      # working-directory: ./subcarpeta en los pasos "run"
+      # (Opcional) Si tu proyecto está en subcarpeta, añade 'working-directory' en los pasos 'run'
 
       - name: Bootstrap wrapper si falta
         run: |
+          set -euo pipefail
           if [ ! -f gradlew ]; then
             sudo apt-get update && sudo apt-get install -y gradle
             gradle wrapper --gradle-version 8.4 --distribution-type bin
@@ -53,7 +53,17 @@ jobs:
       - name: Cache de Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # 🔐 Genera clave GPG efímera y la expone como variables de entorno
+      # 🔧 GPG en modo loopback (evita TTY/prompt del agente)
+      - name: Configurar GPG (loopback)
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo 'allow-loopback-pinentry' > ~/.gnupg/gpg-agent.conf
+          echo 'pinentry-mode loopback'  > ~/.gnupg/gpg.conf
+          gpgconf --kill gpg-agent
+
+      # 🔐 Genera clave GPG efímera y la exporta al entorno
       - name: Generar clave GPG efímera (firma en memoria)
         run: |
           set -euo pipefail
@@ -77,37 +87,41 @@ jobs:
 
           gpg --batch --pinentry-mode loopback --passphrase "${PASSPHRASE}" --generate-key genkey
           KEYID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')
-          gpg --armor --export "${KEYID}" > public.asc
-          gpg --armor --export-secret-keys "${KEYID}" > private.asc
+          echo "KEYID=${KEYID}"
 
-          # Gradle signing plugin (firma en memoria)
+          gpg --armor --export "${KEYID}" > public.asc
+          gpg --batch --pinentry-mode loopback --passphrase "${PASSPHRASE}" \
+              --armor --export-secret-keys "${KEYID}" > private.asc
+
+          # Gradle signing plugin
           printf "SIGNING_KEY<<'EOF'\n%s\nEOF\n" "$(cat private.asc)" >> "$GITHUB_ENV"
           echo "SIGNING_PASSPHRASE=${PASSPHRASE}" >> "$GITHUB_ENV"
 
-          # JReleaser (si decide firmar/validar también)
+          # JReleaser (si valida/firma también)
           printf "JRELEASER_GPG_PUBLIC_KEY<<'EOF'\n%s\nEOF\n"  "$(cat public.asc)"  >> "$GITHUB_ENV"
           printf "JRELEASER_GPG_SECRET_KEY<<'EOF'\n%s\nEOF\n"  "$(cat private.asc)" >> "$GITHUB_ENV"
           echo "JRELEASER_GPG_PASSPHRASE=${PASSPHRASE}" >> "$GITHUB_ENV"
 
-      # (Opcional) Evita publicar SNAPSHOT
+      # (Opcional) Evitar SNAPSHOT en Central
       - name: Verificar versión (no SNAPSHOT)
         run: |
+          set -euo pipefail
           VER=$(./gradlew -q properties | awk -F': ' '/^version: /{print $2; exit}')
           echo "Versión: $VER"
           echo "$VER" | grep -qi SNAPSHOT && { echo "SNAPSHOT no permitido en Central"; exit 1; }
 
-      # Build + docs (Dokka) + validación local
+      # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal
 
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
         env:
-          # Credenciales del Central Publisher Portal
+          # Credenciales del Central Publisher Portal (Sonatype)
           JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          # Token para crear el GitHub Release
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew -Prelease --no-daemon jreleaserFullRelease
 
       - name: Subir logs (si falla)
