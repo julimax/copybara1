@@ -45,7 +45,7 @@ jobs:
           KEY_FILE="$RUNNER_TEMP/pgp-private.asc"
           printf '%s' "$PGP_PRIVATE" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
-          echo "SIGNING_KEY=$KEY_FILE" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_FILE=$KEY_FILE" >> "$GITHUB_ENV"   # <-- este nombre
           echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
       
       
