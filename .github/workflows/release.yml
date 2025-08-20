@@ -37,7 +37,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Cargar clave PGP desde secrets (archivo temporal)
-        shell: bash
         env:
           PGP_PRIVATE: ${{ secrets.SIGNING_KEY }}          # contenido de private.asc
           PGP_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
