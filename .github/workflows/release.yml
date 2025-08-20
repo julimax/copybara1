@@ -23,23 +23,6 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Diagnóstico rápido
-        run: |
-          echo "PWD=$(pwd)"
-          ls -la
-          ls -la gradlew || true
-          ls -la gradle/wrapper || true
-
-      # (Opcional) Si tu proyecto está en subcarpeta, añade 'working-directory' en los pasos 'run'
-
-      - name: Bootstrap wrapper si falta
-        run: |
-          set -euo pipefail
-          if [ ! -f gradlew ]; then
-            sudo apt-get update && sudo apt-get install -y gradle
-            gradle wrapper --gradle-version 8.4 --distribution-type bin
-            chmod +x gradlew
-          fi
 
       - name: Hacer ejecutable la wrapper
         run: chmod +x ./gradlew
@@ -53,6 +36,7 @@ jobs:
       - name: Cache de Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      # Aqui lo  ideal es que no sea efirmero sino alojarlo en keys.openpgp.org  
       # 🔧 GPG en modo loopback (evita TTY/prompt del agente)
       - name: Configurar GPG (loopback)
         run: |
