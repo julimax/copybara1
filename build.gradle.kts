@@ -1,6 +1,3 @@
-import java.nio.file.Files
-import java.nio.file.Paths
-
 plugins {
     kotlin("jvm") version "1.9.10"
     `maven-publish`
@@ -78,11 +75,15 @@ publishing {
 signing {
     val keyFile = System.getenv("SIGNING_KEY_FILE")
     val pass = System.getenv("SIGNING_PASSPHRASE")
+
     require(!keyFile.isNullOrBlank()) { "SIGNING_KEY_FILE is required" }
-    val key = Files.readString(Path.of(keyFile))
+
+    val key = file(keyFile).readText(Charsets.UTF_8)  // ✅ sin imports
     useInMemoryPgpKeys(key, pass)
-    sign(publishing.publications) // o ["maven"] si se llama así
+    sign(publishing.publications) // o ["maven"] si así se llama
 }
+
+
 
 // --- JReleaser: sube al Central Publisher Portal ---
 // Gradle publica primero a un staging local; JReleaser lo empuja al Portal.
