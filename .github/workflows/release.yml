@@ -39,11 +39,16 @@ jobs:
       - name: Cargar clave PGP desde secrets (archivo temporal)
         shell: bash
         env:
-          PGP_PRIVATE: ${{ secrets.SIGNING_KEY }}          
+          PGP_PRIVATE: ${{ secrets.SIGNING_KEY }}          # contenido de private.asc
           PGP_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
-          echo "SIGNING_KEY_FILE=$PGP_PRIVATE" >> "$GITHUB_ENV"
+          set -euo pipefail
+          KEY_FILE="$RUNNER_TEMP/pgp-private.asc"
+          printf '%s' "$PGP_PRIVATE" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          echo "SIGNING_KEY_FILE=$KEY_FILE" >> "$GITHUB_ENV"
           echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
+      
       
       # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
