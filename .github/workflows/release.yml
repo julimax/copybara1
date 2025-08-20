@@ -36,71 +36,11 @@ jobs:
       - name: Cache de Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # Aqui lo  ideal es que no sea efirmero sino alojarlo en keys.openpgp.org  
-      # 🔧 GPG en modo loopback (evita TTY/prompt del agente)
-      - name: Configurar GPG (loopback)
+      - name: Cargar clave PGP desde secrets (archivo temporal)
+        shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
-          echo 'allow-loopback-pinentry' > ~/.gnupg/gpg-agent.conf
-          echo 'pinentry-mode loopback'  > ~/.gnupg/gpg.conf
-          gpgconf --kill gpg-agent
-
-      # 🔐 Genera clave GPG efímera y la exporta al entorno (sin comillas en EOF)
-      - name: Generar clave GPG efímera (firma en memoria)
-        run: |
-          set -euo pipefail
-          GPG_NAME="CI Ephemeral Key"
-          GPG_EMAIL="ci@julimax.local"
-          PASSPHRASE="$(openssl rand -hex 16)"
-
-          cat > genkey <<EOF
-          %echo Generating CI key
-          Key-Type: RSA
-          Key-Length: 4096
-          Subkey-Type: RSA
-          Subkey-Length: 4096
-          Name-Real: ${GPG_NAME}
-          Name-Email: ${GPG_EMAIL}
-          Expire-Date: 0
-          Passphrase: ${PASSPHRASE}
-          %commit
-          %echo done
-          EOF
-
-          gpg --batch --pinentry-mode loopback --passphrase "${PASSPHRASE}" --generate-key genkey
-
-          # Obtener KEYID (campo 5 de 'sec:' con --with-colons)
-          KEYID="$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')"
-          echo "KEYID=${KEYID}"
-
-          # Exportar PUBLICA y PRIVADA (loopback + passphrase)
-          gpg --armor --export "${KEYID}" > public.asc
-          gpg --batch --pinentry-mode loopback --passphrase "${PASSPHRASE}" \
-              --armor --export-secret-keys "${KEYID}" > private.asc
-
-          # Delimitadores únicos para $GITHUB_ENV
-          PRIV_DELIM="GPG_PRIVATE_KEY_$(date +%s)_$$"
-          PUB_DELIM="GPG_PUBLIC_KEY_$(date +%s)_$$"
-
-          # Gradle signing plugin (firma en memoria) — multiline env
-          echo "SIGNING_KEY<<${PRIV_DELIM}" >> "$GITHUB_ENV"
-          cat private.asc >> "$GITHUB_ENV"
-          echo "${PRIV_DELIM}" >> "$GITHUB_ENV"
-          echo "SIGNING_PASSPHRASE=${PASSPHRASE}" >> "$GITHUB_ENV"
-
-          # JReleaser (si valida/firma también) — multiline env
-          echo "JRELEASER_GPG_PUBLIC_KEY<<${PUB_DELIM}" >> "$GITHUB_ENV"
-          cat public.asc >> "$GITHUB_ENV"
-          echo "${PUB_DELIM}" >> "$GITHUB_ENV"
-
-          echo "JRELEASER_GPG_SECRET_KEY<<${PRIV_DELIM}" >> "$GITHUB_ENV"
-          cat private.asc >> "$GITHUB_ENV"
-          echo "${PRIV_DELIM}" >> "$GITHUB_ENV"
-
-          echo "JRELEASER_GPG_PASSPHRASE=${PASSPHRASE}" >> "$GITHUB_ENV"
-
+          echo "SIGNING_KEY=${{ secrets.SIGNING_KEY }}" >> "$GITHUB_ENV"
+          echo "SIGNING_PASSPHRASE=${{ secrets.SIGNING_PASSPHRASE }}" >> "$GITHUB_ENV"
 
       # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
