@@ -93,10 +93,7 @@ tasks.register("publishStaging") {
 
 jreleaser {
     signing {
-        active.set(org.jreleaser.model.Active.ALWAYS)
-        armored.set(true)
-        mode.set(org.jreleaser.model.Signing.Mode.MEMORY)
-        // lee JRELEASER_GPG_PUBLIC_KEY / SECRET_KEY / PASSPHRASE del entorno si los defines
+        active.set(org.jreleaser.model.Active.NEVER)
     }
     deploy {
         maven {
