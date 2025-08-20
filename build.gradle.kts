@@ -76,12 +76,15 @@ signing {
     val keyFile = System.getenv("SIGNING_KEY_FILE")
     val pass = System.getenv("SIGNING_PASSPHRASE")
 
-    require(!keyFile.isNullOrBlank()) { "SIGNING_KEY_FILE is required" }
-
-    val key = file(keyFile).readText(Charsets.UTF_8)  // ✅ sin imports
-    useInMemoryPgpKeys(key, pass)
-    sign(publishing.publications) // o ["maven"] si así se llama
+    if (!keyFile.isNullOrBlank()) {
+        val key = file(keyFile).readText(Charsets.UTF_8)
+        useInMemoryPgpKeys(key, pass)
+        sign(publishing.publications)
+    } else {
+        logger.lifecycle("Signing disabled (no SIGNING_KEY_FILE).")
+    }
 }
+
 
 
 
