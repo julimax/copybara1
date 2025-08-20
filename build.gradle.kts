@@ -73,12 +73,12 @@ publishing {
 
 // --- Firma PGP en memoria (requerida por Central) ---
 signing {
-    // Define las props SIGNING_KEY (ASCII-armored) y SIGNING_PASSPHRASE en CI
-    useInMemoryPgpKeys(
-        System.getenv("SIGNING_KEY"),
-        System.getenv("SIGNING_PASSPHRASE")
-    )
-    sign(publishing.publications)
+    val keyFile = System.getenv("SIGNING_KEY_FILE")
+    val pass = System.getenv("SIGNING_PASSPHRASE")
+    require(!keyFile.isNullOrBlank()) { "SIGNING_KEY_FILE is required" }
+    val key = Files.readString(Path.of(keyFile))
+    useInMemoryPgpKeys(key, pass)
+    sign(publishing.publications) // o ["maven"] si se llama así
 }
 
 // --- JReleaser: sube al Central Publisher Portal ---
