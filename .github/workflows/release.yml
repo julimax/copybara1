@@ -37,7 +37,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Cargar clave PGP desde secrets (archivo temporal)
-        shell: bash
         run: |
           echo "SIGNING_KEY=${{ secrets.SIGNING_KEY }}" >> "$GITHUB_ENV"
           echo "SIGNING_PASSPHRASE=${{ secrets.SIGNING_PASSPHRASE }}" >> "$GITHUB_ENV"
