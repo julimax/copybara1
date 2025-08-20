@@ -119,11 +119,16 @@ jobs:
 
       # (Opcional) Evitar SNAPSHOT en Central
       - name: Verificar versión (no SNAPSHOT)
+        shell: bash
         run: |
-          set -euo pipefail
-          VER=$(./gradlew -q properties | awk -F': ' '/^version: /{print $2; exit}')
-          echo "Versión: $VER"
-          echo "$VER" | grep -qi SNAPSHOT && { echo "SNAPSHOT no permitido en Central"; exit 1; }
+            set -euo pipefail
+            VER="$(./gradlew -q properties | sed -n 's/^version: //p' | head -n1)"
+            echo "Versión: $VER"
+            # usa here-string para no crear pipeline (y no gatillar pipefail)
+            if grep -qi -- '-SNAPSHOT$' <<< "$VER"; then
+            echo "SNAPSHOT no permitido en Central"
+            exit 1
+            fi
 
       # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
