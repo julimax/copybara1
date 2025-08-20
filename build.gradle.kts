@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.github.julimax"
-version = "1.0.3"
+version = "1.0.4"
 description = "Copybara Kotlin Hello World Application"
 
 repositories { mavenCentral() }
