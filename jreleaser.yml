@@ -13,7 +13,11 @@ signing:
   active: NEVER
 
 deploy:
+  enabled: true
+  active: ALWAYS
   maven:
+    enabled: true
+    active: ALWAYS
     mavenCentral:
       app:
         active: ALWAYS
