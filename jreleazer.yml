@@ -1,25 +1,35 @@
 project:
   name: copybara
   description: Copybara Kotlin Hello World Application
-  longDescription: A basic Kotlin Hello World application for Copybara project
   links:
     homepage: https://github.com/julimax/copybara1
   authors: [ "Juli Gonzalez" ]
   license: Apache-2.0
   inceptionYear: 2024
 
+# La firma la hace Gradle (tu bloque signing{}), aquí la desactivamos
 signing:
-  active: NEVER   # porque ya firmás con Gradle
+  active: NEVER
 
 deploy:
+  enabled: true
   active: ALWAYS
   maven:
+    enabled: true
     active: ALWAYS
+    # Valida POM con pomchecker (opcional pero recomendado)
+    pomchecker:
+      version: 1.14.0
+      strict: true
+      failOnWarning: true
+      failOnError: true
+
     mavenCentral:
       active: ALWAYS
       applyMavenCentralRules: true
-      # Publicaste a un repo “staging” dentro de build/
+      # Ruta donde Gradle publicó con:
+      # publishMavenPublicationToStagingRepository
       stagingRepositories:
         - "{{projectBaseDir}}/build/staging-deploy"
-      # (Opcional) Si querés forzar el endpoint, podés definir:
-      # url: https://central.sonatype.com/api/v1/publisher
+      # URL del Publisher API (opcional; por defecto JReleaser ya usa esta)
+      url: https://central.sonatype.com/api/v1/publisher
