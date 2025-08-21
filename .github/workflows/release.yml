@@ -49,9 +49,22 @@ jobs:
           echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
       
       
-      # Build + dokka + validación local
-      - name: Build + Dokka + publishToMavenLocal
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal --scan
+      # Build + dokka + stage (publish)
+      - name: Build + Dokka + stage (publish)
+        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publish --scan
+
+      # 🔍 Verificar artefactos en staging antes de JReleaser
+      - name: Verify Staging Artifacts
+        run: |
+          echo "=== Verificando artefactos en staging ==="
+          if [ -d "build/staging-deploy" ]; then
+            find build/staging-deploy -name "*.jar" -o -name "*.pom" | head -10
+            echo "📄 Archivos encontrados:"
+            ls -la build/staging-deploy/io/github/julimax/copybara/1.0.6/ 2>/dev/null || echo "⚠️  Directorio de versión no encontrado"
+          else
+            echo "❌ Directorio staging-deploy no existe"
+            exit 1
+          fi
 
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
