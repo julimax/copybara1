@@ -53,18 +53,6 @@ jobs:
       - name: Build + Dokka + stage (publish)
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository --scan
 
-      # 🔍 Verificar artefactos en staging antes de JReleaser
-      - name: Verify Staging Artifacts
-        run: |
-          echo "=== Verificando artefactos en staging ==="
-          if [ -d "build/staging-deploy" ]; then
-            find build/staging-deploy -name "*.jar" -o -name "*.pom" | head -10
-            echo "📄 Archivos encontrados:"
-            ls -la build/staging-deploy/io/github/julimax/copybara/1.0.6/ 2>/dev/null || echo "⚠️  Directorio de versión no encontrado"
-          else
-            echo "❌ Directorio staging-deploy no existe"
-            exit 1
-          fi
 
       # 🚀 Subir artifacts a Maven Central usando HTTP directo
       - name: Upload to Maven Central via HTTP
@@ -77,8 +65,9 @@ jobs:
           # Configuración
           NAMESPACE="io.github.julimax"
           PROJECT_NAME="copybara"
-          VERSION="1.0.6"
+          VERSION=$(grep '^version = ' build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
           BASE_URL="https://central.sonatype.com/api/v1/publisher"
+
           
           echo "🚀 Subiendo artifacts a Maven Central..."
           echo "   Namespace: $NAMESPACE"
@@ -177,7 +166,7 @@ jobs:
         run: |
           set -e
           
-          VERSION="1.0.6"
+          VERSION="1.0.7"
           TAG_NAME="v$VERSION"
           
           echo "🏷️ Creando GitHub Release..."
