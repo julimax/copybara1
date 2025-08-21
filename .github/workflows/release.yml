@@ -51,7 +51,7 @@ jobs:
       
       # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal
+        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal --scan
 
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
