@@ -8,21 +8,21 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.julimax</groupId>
   <artifactId>copybara</artifactId>
-  <version>1.0.5</version>
-  <name>Copybara Kotlin App</name>
+  <version>1.0.6</version>
+  <name>Copybara Kotlin Hello World</name>
   <description>A basic Kotlin Hello World application for Copybara project</description>
   <url>https://github.com/julimax/copybara1</url>
   <licenses>
     <license>
-      <name>Apache-2.0</name>
-      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
   <developers>
     <developer>
       <id>julimax</id>
       <name>Juli Gonzalez</name>
-      <email>you@example.com</email>
+      <email>julimax951@gmail.com</email>
     </developer>
   </developers>
   <scm>

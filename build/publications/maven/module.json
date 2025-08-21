@@ -3,7 +3,7 @@
   "component": {
     "group": "io.github.julimax",
     "module": "copybara",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "attributes": {
       "org.gradle.status": "release"
     }
@@ -27,13 +27,13 @@
       },
       "files": [
         {
-          "name": "copybara-1.0.5.jar",
-          "url": "copybara-1.0.5.jar",
+          "name": "copybara-1.0.6.jar",
+          "url": "copybara-1.0.6.jar",
           "size": 261,
-          "sha512": "768cb207cc568df2eb8cecc88220c59e72e793f5515015659e0a4905b3ac83fb9a1afe92908adea33b9b72f6e60a2cfbc16dc1aea083ed2fdf304bb1b7edc632",
-          "sha256": "df0aee1a448313345030b6d39921ad00e9940c53483b1876d07043eb5650f0ef",
-          "sha1": "6eb32ac07e0e4065bb198ad35bea2691d961c26f",
-          "md5": "1ec9446d1896400d76757878ef5e2b7a"
+          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
+          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
+          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
+          "md5": "3cf29803c346e453c62cc35977ceafc0"
         }
       ]
     },
@@ -59,13 +59,13 @@
       ],
       "files": [
         {
-          "name": "copybara-1.0.5.jar",
-          "url": "copybara-1.0.5.jar",
+          "name": "copybara-1.0.6.jar",
+          "url": "copybara-1.0.6.jar",
           "size": 261,
-          "sha512": "768cb207cc568df2eb8cecc88220c59e72e793f5515015659e0a4905b3ac83fb9a1afe92908adea33b9b72f6e60a2cfbc16dc1aea083ed2fdf304bb1b7edc632",
-          "sha256": "df0aee1a448313345030b6d39921ad00e9940c53483b1876d07043eb5650f0ef",
-          "sha1": "6eb32ac07e0e4065bb198ad35bea2691d961c26f",
-          "md5": "1ec9446d1896400d76757878ef5e2b7a"
+          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
+          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
+          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
+          "md5": "3cf29803c346e453c62cc35977ceafc0"
         }
       ]
     },
@@ -79,13 +79,13 @@
       },
       "files": [
         {
-          "name": "copybara-1.0.5-sources.jar",
-          "url": "copybara-1.0.5-sources.jar",
+          "name": "copybara-1.0.6-sources.jar",
+          "url": "copybara-1.0.6-sources.jar",
           "size": 261,
-          "sha512": "768cb207cc568df2eb8cecc88220c59e72e793f5515015659e0a4905b3ac83fb9a1afe92908adea33b9b72f6e60a2cfbc16dc1aea083ed2fdf304bb1b7edc632",
-          "sha256": "df0aee1a448313345030b6d39921ad00e9940c53483b1876d07043eb5650f0ef",
-          "sha1": "6eb32ac07e0e4065bb198ad35bea2691d961c26f",
-          "md5": "1ec9446d1896400d76757878ef5e2b7a"
+          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
+          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
+          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
+          "md5": "3cf29803c346e453c62cc35977ceafc0"
         }
       ]
     }

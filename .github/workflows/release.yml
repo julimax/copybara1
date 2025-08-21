@@ -49,26 +49,16 @@ jobs:
           echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
       
       
-      # Build + dokka + publish to Maven local (JReleaser auto-detects)
+      # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal --scan
 
-      # 🚀 Opción 1: Deployment directo a Maven Central (recomendado)
-      - name: Deploy to Maven Central (Direct)
+      # 🚀 Publica en Maven Central y crea GitHub Release
+      - name: JReleaser — Full Release (Central + GitHub Release)
         env:
-          # Credenciales de Sonatype OSSRH
-          OSSRH_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: ./gradlew --no-daemon publishToMavenCentral --scan
-
-      # 🚀 Opción 2: JReleaser — Full Release (Central + GitHub Release)
-      # Comentado debido al bug conocido en JReleaser 1.19.0
-      # - name: JReleaser — Full Release (Central + GitHub Release)
-      #   env:
-      #     # Credenciales del Central Publisher Portal (Sonatype)
-      #     JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-      #     JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-      #     # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
-      #     JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: ./gradlew -Prelease --no-daemon jreleaserFullRelease
-
+          # Credenciales del Central Publisher Portal (Sonatype)
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew -Prelease --no-daemon jreleaserFullRelease
