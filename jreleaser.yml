@@ -18,5 +18,6 @@ deploy:
       active: ALWAYS
       url: https://central.sonatype.com/api/v1/publisher
       stagingRepository: "{{projectBaseDir}}/build/staging-deploy"
+      applyMavenCentralRules: true
       # JReleaser usará:
       #   JRELEASER_MAVENCENTRAL_USERNAME / JRELEASER_MAVENCENTRAL_PASSWORD
