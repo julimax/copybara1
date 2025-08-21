@@ -107,3 +107,24 @@ jobs:
           
           echo "=== Alternative locations ==="
           find "$RUNNER_TEMP" -name "*build-results*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
+
+      # 🔍 Mostrar logs detallados de JReleaser
+      - name: Show JReleaser Logs
+        if: always()
+        run: |
+          echo "=== JReleaser Logs ==="
+          if [ -d "build/jreleaser" ]; then
+            find build/jreleaser -name "*.log" -o -name "*.txt" | while read file; do
+              echo "📄 JReleaser Log: $file"
+              cat "$file"
+              echo "---"
+            done
+          else
+            echo "⚠️  JReleaser build directory not found"
+          fi
+          
+          echo "=== Gradle Daemon Logs (últimas líneas) ==="
+          find ~/.gradle/daemon -name "*.log" 2>/dev/null | head -1 | while read file; do
+            echo "📄 Daemon Log: $file"
+            tail -100 "$file"
+          done
