@@ -57,6 +57,7 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            artifactId = "copybara" 
             artifact(tasks.named("javadocJar"))
             // sourcesJar ya viene de 'java.withSourcesJar()'
 
