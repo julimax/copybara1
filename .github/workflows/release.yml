@@ -85,6 +85,17 @@ jobs:
           echo "   Project: $PROJECT_NAME"
           echo "   Version: $VERSION"
           
+          # Debug: verificar credenciales (sin mostrar el token completo)
+          echo "🔍 Debug de credenciales:"
+          echo "   Username: ${OSSRH_USERNAME:-'NOT_SET'}"
+          echo "   Password length: ${#OSSRH_PASSWORD}"
+          echo "   Password starts with: ${OSSRH_PASSWORD:0:8}..."
+          
+          if [[ -z "$OSSRH_USERNAME" || -z "$OSSRH_PASSWORD" ]]; then
+            echo "❌ Error: OSSRH_USERNAME o OSSRH_PASSWORD no están definidos"
+            exit 1
+          fi
+          
           # Verificar que existan los artifacts
           JAR_FILE="build/libs/${PROJECT_NAME}-${VERSION}.jar"
           POM_FILE="build/publications/maven/pom-default.xml"
@@ -121,11 +132,17 @@ jobs:
           
           # Subir el bundle
           echo "📤 Subiendo bundle a Maven Central..."
+          echo "🔗 URL: $BASE_URL/upload"
+          echo "🔑 Authorization header: Bearer ${OSSRH_PASSWORD:0:8}..."
+          echo "📦 Bundle file: $BUNDLE_FILE"
+          echo "📝 Form data: name=$PROJECT_NAME, namespace=$NAMESPACE"
           
+          # Hacer la petición con más debug
           UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" \
             -X POST \
             "$BASE_URL/upload" \
             -H "Authorization: Bearer $OSSRH_PASSWORD" \
+            -H "User-Agent: GitHub-Actions-Upload/1.0" \
             -F "bundle=@$BUNDLE_FILE" \
             -F "name=$PROJECT_NAME" \
             -F "namespace=$NAMESPACE")
