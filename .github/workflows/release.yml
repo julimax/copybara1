@@ -51,7 +51,7 @@ jobs:
       
       # Build + dokka + validación local
       - name: Build + Dokka + publishToMavenLocal
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal --scan
+        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal
 
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
@@ -61,6 +61,5 @@ jobs:
           JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew -Prelease --no-daemon jreleaserFullRelease --scan
-
+        run: ./gradlew -Prelease --no-daemon jreleaserFullRelease
 
