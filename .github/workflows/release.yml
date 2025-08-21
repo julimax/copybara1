@@ -69,9 +69,9 @@ jobs:
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
         env:
-          # Credenciales del Central Publisher Portal (Sonatype)
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          # Credenciales del Central Publisher Portal (Sonatype) - para deployer "app"
+          JRELEASER_MAVENCENTRAL_APP_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          JRELEASER_MAVENCENTRAL_APP_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew -Prelease --no-daemon jreleaserFullRelease

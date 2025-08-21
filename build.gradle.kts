@@ -139,9 +139,20 @@ jreleaser {
         maven {
             active.set(org.jreleaser.model.Active.ALWAYS)
             mavenCentral {
-                active.set(org.jreleaser.model.Active.ALWAYS)
-                // JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
-                // Los artefactos deben estar en el repositorio local de Maven o staging
+                // Definir un deployer con nombre (ej: "app")
+                app {
+                    active.set(org.jreleaser.model.Active.ALWAYS)
+                    
+                    // Decirle dónde dejó Gradle los artefactos stageados
+                    stagingRepositories.add(
+                        layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                    )
+                    
+                    // Opcional: si usás Bearer token (recomendado en Central Portal)
+                    // authorization.set(org.jreleaser.model.api.deploy.maven.MavenCentralDeployer.Authorization.BEARER)
+                    // username no es necesario para BEARER. El token va como "password".
+                    // Si preferís usuario/clave, cambiá a BASIC.
+                }
             }
         }
     }
