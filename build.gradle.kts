@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.github.julimax"
-version = "1.0.4"
+version = "1.0.5"
 description = "Copybara Kotlin Hello World Application"
 
 repositories { mavenCentral() }
@@ -37,6 +37,13 @@ tasks.register<org.gradle.jvm.tasks.Jar>("javadocJar") {
 
 // --- Publicación (POM completo + artifacts) ---
 publishing {
+    repositories {
+        maven {
+            name = "staging"
+            url = uri("build/staging-deploy")
+        }
+    }
+    
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
@@ -91,18 +98,32 @@ signing {
 // --- JReleaser: sube al Central Publisher Portal ---
 // Gradle publica primero a un staging local; JReleaser lo empuja al Portal.
 tasks.register("publishStaging") {
-    dependsOn("publishAllPublicationsToMavenLocal") // opcional si quieres validar local
+    dependsOn("publishMavenPublicationToStagingRepository")
+    description = "Publishes artifacts to staging repository for JReleaser"
 }
 
 jreleaser {
+    project {
+        description.set("Copybara Kotlin Hello World Application")
+        longDescription.set("A basic Kotlin Hello World application for Copybara project")
+        links {
+            homepage.set("https://github.com/julimax/copybara1")
+        }
+        authors.set(listOf("Juli Gonzalez"))
+        license.set("Apache-2.0")
+        inceptionYear.set("2024")
+    }
+    
     signing {
         active.set(org.jreleaser.model.Active.NEVER)
     }
+    
     deploy {
         maven {
             mavenCentral {
                 active.set(org.jreleaser.model.Active.ALWAYS)
-                // JReleaser detecta las publicaciones de Gradle y las sube al Portal
+                url.set("https://central.sonatype.com/api/v1/publisher")
+                stagingRepository("build/staging-deploy")
             }
         }
     }
