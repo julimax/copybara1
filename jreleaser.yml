@@ -16,8 +16,7 @@ deploy:
   maven:
     mavenCentral:
       active: ALWAYS
-      sonatype:
-        # Debe coincidir con el repo "staging" que configuraste en Gradle
-        stagingRepository: "{{projectBaseDir}}/build/staging-deploy"
+      url: https://central.sonatype.com/api/v1/publisher
+      stagingRepository: "{{projectBaseDir}}/build/staging-deploy"
       # JReleaser usará:
       #   JRELEASER_MAVENCENTRAL_USERNAME / JRELEASER_MAVENCENTRAL_PASSWORD
