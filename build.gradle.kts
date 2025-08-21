@@ -139,19 +139,11 @@ jreleaser {
         maven {
             active.set(org.jreleaser.model.Active.ALWAYS)
             mavenCentral {
-                // Definir un deployer con nombre (ej: "app")
-                app {
+                sonatype {
                     active.set(org.jreleaser.model.Active.ALWAYS)
-                    
-                    // Decirle dónde dejó Gradle los artefactos stageados
-                    stagingRepositories.add(
-                        layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
-                    )
-                    
-                    // Opcional: si usás Bearer token (recomendado en Central Portal)
-                    // authorization.set(org.jreleaser.model.api.deploy.maven.MavenCentralDeployer.Authorization.BEARER)
-                    // username no es necesario para BEARER. El token va como "password".
-                    // Si preferís usuario/clave, cambiá a BASIC.
+                    url.set("https://central.sonatype.com/api/v1/publisher")
+                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
+                    // JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
                 }
             }
         }
