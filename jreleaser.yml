@@ -16,5 +16,8 @@ deploy:
   maven:
     mavenCentral:
       active: ALWAYS
+      url: https://central.sonatype.com/api/v1/publisher
+      stagingRepositories:
+        - build/staging-deploy
       # JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
       # Los artefactos deben estar en el repositorio local de Maven (~/.m2/repository)
