@@ -3,7 +3,6 @@ plugins {
     `maven-publish`
     signing
     id("org.jetbrains.dokka") version "2.0.0"        // Docs para Kotlin
-    id("org.jreleaser") version "1.19.0"             // Publicación al Central Portal
     application
 }
 
@@ -117,19 +116,5 @@ tasks.register("publishToMavenCentral") {
     group = "publishing"
 }
 
-// --- JReleaser: sube al Central Publisher Portal ---
-// Gradle publica primero a un staging local; JReleaser lo empuja al Portal.
-jreleaser {
-    project {
-        description.set("Copybara Kotlin Hello World Application")
-        longDescription.set("A basic Kotlin Hello World application for Copybara project")
-        links {
-            homepage.set("https://github.com/julimax/copybara1")
-        }
-        authors.set(listOf("Juli Gonzalez"))
-        license.set("Apache-2.0")
-        inceptionYear.set("2024")
-    }
-    
-    // Configuración movida a jreleaser.yml para evitar conflictos de API
-}
+// --- Maven Central deployment via direct HTTP upload ---
+// Using Sonatype Central Publisher API directly instead of JReleaser
