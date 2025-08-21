@@ -133,7 +133,7 @@ jobs:
           # Subir el bundle
           echo "📤 Subiendo bundle a Maven Central..."
           echo "🔗 URL: $BASE_URL/upload"
-          echo "🔑 Authorization header: Bearer ${OSSRH_PASSWORD:0:8}..."
+          echo "🔑 Authorization header: Basic ${OSSRH_USERNAME}:${OSSRH_PASSWORD:0:8}..."
           echo "📦 Bundle file: $BUNDLE_FILE"
           echo "📝 Form data: name=$PROJECT_NAME, namespace=$NAMESPACE"
           
@@ -141,7 +141,7 @@ jobs:
           UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" \
             -X POST \
             "$BASE_URL/upload" \
-            -H "Authorization: Bearer $OSSRH_PASSWORD" \
+            -u "$OSSRH_USERNAME:$OSSRH_PASSWORD" \
             -H "User-Agent: GitHub-Actions-Upload/1.0" \
             -F "bundle=@$BUNDLE_FILE" \
             -F "name=$PROJECT_NAME" \
