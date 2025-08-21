@@ -1,0 +1,20 @@
+project:
+  name: copybara
+  description: Copybara Kotlin Hello World Application
+  longDescription: A basic Kotlin Hello World application for Copybara project
+  links:
+    homepage: https://github.com/julimax/copybara1
+  authors:
+    - Juli Gonzalez
+  license: Apache-2.0
+  inceptionYear: 2024
+
+signing:
+  active: NEVER
+
+deploy:
+  maven:
+    mavenCentral:
+      active: ALWAYS
+      # JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
+      # Los artefactos deben estar en el repositorio local de Maven (~/.m2/repository)

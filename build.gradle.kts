@@ -42,6 +42,17 @@ publishing {
             name = "staging"
             url = uri(layout.buildDirectory.dir("staging-deploy").get())
         }
+        // Maven Central (Sonatype OSSRH) - alternativa directa a JReleaser
+        maven {
+            name = "sonatype"
+            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+            credentials {
+                username = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+                password = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
     }
     
     publications {
@@ -51,21 +62,22 @@ publishing {
             // sourcesJar ya viene de 'java.withSourcesJar()'
 
             pom {
-                name.set("Copybara Kotlin App")
+                name.set("Copybara Kotlin Hello World")
                 description.set("A basic Kotlin Hello World application for Copybara project")
-                url.set("https://github.com/julimax/copybara1") // <-- alinea con tu repo real
-
+                url.set("https://github.com/julimax/copybara1")
+                
                 licenses {
                     license {
-                        name.set("Apache-2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                     }
                 }
+                
                 developers {
                     developer {
                         id.set("julimax")
                         name.set("Juli Gonzalez")
-                        email.set("you@example.com")
+                        email.set("julimax951@gmail.com")
                     }
                 }
                 scm {
@@ -92,16 +104,21 @@ signing {
     }
 }
 
+// --- Tareas personalizadas para deployment ---
+tasks.register("publishStaging") {
+    dependsOn("publishMavenPublicationToStagingRepository")
+    description = "Publica los artefactos al repositorio de staging local"
+    group = "publishing"
+}
 
-
+tasks.register("publishToMavenCentral") {
+    dependsOn("publishMavenPublicationToSonatypeRepository")
+    description = "Publica los artefactos directamente a Maven Central (Sonatype OSSRH)"
+    group = "publishing"
+}
 
 // --- JReleaser: sube al Central Publisher Portal ---
 // Gradle publica primero a un staging local; JReleaser lo empuja al Portal.
-tasks.register("publishStaging") {
-    dependsOn("publishMavenPublicationToStagingRepository")
-    description = "Publishes artifacts to staging repository for JReleaser"
-}
-
 jreleaser {
     project {
         description.set("Copybara Kotlin Hello World Application")
@@ -120,6 +137,7 @@ jreleaser {
     
     deploy {
         maven {
+            active.set(org.jreleaser.model.Active.ALWAYS)
             mavenCentral {
                 active.set(org.jreleaser.model.Active.ALWAYS)
                 // JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
