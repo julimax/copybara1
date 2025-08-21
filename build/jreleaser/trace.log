@@ -1,0 +1,410 @@
+[INFO]  JReleaser 1.19.0
+------------------------------------------------------------
+jreleaser 1.19.0
+------------------------------------------------------------
+Build time:   2025-06-30 18:28:25Z
+Revision:     ecaef0d76d84f702c96e129073966bafa145456a
+JVM:          11.0.28 (Ubuntu 11.0.28+6-post-Ubuntu-1ubuntu124.04.1)
+------------------------------------------------------------
+[INFO]    - basedir set to /home/desktop/Desktop/copybara/copybara1
+[INFO]    - outputdir set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser
+[DEBUG]   - basedir set to /home/desktop/Desktop/copybara/copybara1
+[DEBUG]   - baseOutputDirectory set to /home/desktop/Desktop/copybara/copybara1/build
+[DEBUG]   - outputDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser
+[DEBUG]   - checksumDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/checksums
+[DEBUG]   - catalogsDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/catalogs
+[DEBUG]   - signaturesDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/signatures
+[DEBUG]   - prepareDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/prepare
+[DEBUG]   - packageDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/package
+[DEBUG]   - downloadDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/download
+[DEBUG]   - assembleDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/assemble
+[DEBUG]   - artifactsDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/artifacts
+[DEBUG]   - deployDirectory set to /home/desktop/Desktop/copybara/copybara1/build/jreleaser/deploy
+[INFO]  git-root-search set to false
+[INFO]  Loading variables from /home/desktop/.jreleaser/config.properties
+[WARN]  Variables source /home/desktop/.jreleaser/config.properties does not exist
+[INFO]  Validating configuration
+[INFO]  Strict mode set to false
+[DEBUG]   [validation] --== DEPLOY ==--
+[DEBUG]   [validation] hooks
+[DEBUG]   [validation] hooks.command
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] hooks.script
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] project
+[DEBUG]   [validation] download
+[DEBUG]   [validation] catalog.swid
+[DEBUG]   [validation] assemble
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] signing
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] release
+[DEBUG]   [validation] checksum
+[DEBUG]   [validation] deploy
+[DEBUG]   [validation] deploy.maven
+[DEBUG]   [validation] upload
+[DEBUG]   [validation] catalog
+[DEBUG]   [validation] catalog.sbom
+[DEBUG]   [validation] catalog.sbom.cyclonedx
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] catalog.sbom.syft
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] catalog.github
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] catalog.slsa
+[DEBUG]   [validation] - disabled
+[DEBUG]   [validation] announce
+[DEBUG]   [validation] - disabled
+[DEBUG]   [postvalidation] project
+environment:
+ 
+hooks:
+    enabled: false
+    active: NEVER
+    command:
+        enabled: false
+        active: NEVER
+    script:
+        enabled: false
+        active: NEVER
+ 
+project:
+    name: copybara
+    version: 1.0.5
+    versionPattern: SEMVER
+    snapshot:
+        enabled: false
+        pattern: .*-SNAPSHOT
+        label: early-access
+        fullChangelog: false
+    description: Copybara Kotlin Hello World Application
+    longDescription: A basic Kotlin Hello World application for Copybara project
+    license: Apache-2.0
+    inceptionYear: 2024
+    authors:
+        Juli Gonzalez
+    stereotype: NONE
+    links:
+        homepage: https://github.com/julimax/copybara1
+        documentation: https://github.com/julimax/copybara1
+        license: https://spdx.org/licenses/Apache-2.0.html
+    languages:
+        java:
+            enabled: true
+            version: 11
+            groupId: io.github.julimax
+            artifactId: copybara
+            mainClass: MainKt
+            jvmOptions:
+            environmentVariables:
+            multiProject: false
+ 
+platform:
+ 
+ 
+checksum:
+    name: checksums.txt
+    individual: false
+    algorithms:
+        SHA_256
+    artifacts: true
+    files: true
+ 
+signing:
+    enabled: false
+    active: NEVER
+    armored: false
+    verify: true
+    mode: MEMORY
+    artifacts: true
+    files: true
+    checksums: true
+    catalogs: true
+    passphrase: **unset**
+    publicKey: **unset**
+    secretKey: **unset**
+ 
+announce:
+    enabled: true
+    article:
+        enabled: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: article
+            token: **unset**
+    bluesky:
+        enabled: false
+        handle: **unset**
+        password: **unset**
+    discord:
+        enabled: false
+        webhook: **unset**
+    discourse:
+        enabled: false
+        apiKey: **unset**
+        username: **unset**
+    discussions:
+        enabled: false
+    gitter:
+        enabled: false
+        webhook: **unset**
+    googlechat:
+        enabled: false
+        webhook: **unset**
+    linkedin:
+        enabled: false
+        owner: **unset**
+        accessToken: **unset**
+    smtp:
+        enabled: false
+        auth: false
+        password: **unset**
+    mastodon:
+        enabled: false
+        accessToken: **unset**
+    mattermost:
+        enabled: false
+        webhook: **unset**
+        structuredMessage: true
+    opencollective:
+        enabled: false
+        token: **unset**
+    sdkman:
+        enabled: false
+        consumerKey: **unset**
+        consumerToken: **unset**
+    slack:
+        enabled: false
+        webhook: **unset**
+        token: **unset**
+    teams:
+        enabled: false
+        webhook: **unset**
+    telegram:
+        enabled: false
+        token: **unset**
+        chatId: **unset**
+    twitter:
+        enabled: false
+        consumerKey: **unset**
+        consumerSecret: **unset**
+        accessToken: **unset**
+        accessTokenSecret: **unset**
+    zulip:
+        enabled: false
+        apiKey: **unset**
+ 
+packagers:
+    appimage:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        requiresTerminal: false
+        repository:
+            enabled: false
+            name: appimage
+            token: **unset**
+    asdf:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: asdf
+            token: **unset**
+    brew:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        multiPlatform: false
+        repository:
+            enabled: false
+            name: homebrew-tap
+            token: **unset**
+        cask:
+            enabled: false
+    chocolatey:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        apiKey: **unset**
+        remoteBuild: false
+        repository:
+            enabled: false
+            name: chocolatey-bucket
+            token: **unset**
+    docker:
+        enabled: false
+        useLocalArtifact: true
+        buildx:
+            enabled: false
+            createBuilder: true
+        commitAuthor:
+        repository:
+            enabled: false
+            name: docker
+            token: **unset**
+            versionedSubfolders: false
+        continueOnError: false
+    flatpak:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: flatpak
+            token: **unset**
+    gofish:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: fish-food
+            token: **unset**
+    jbang:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: jbang-catalog
+            token: **unset**
+    jib:
+        enabled: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: jib
+            token: **unset**
+            versionedSubfolders: false
+        continueOnError: false
+    macports:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: macports
+            token: **unset**
+    scoop:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: scoop
+            token: **unset**
+    sdkman:
+        enabled: false
+        continueOnError: false
+        connectTimeout: 0
+        readTimeout: 0
+        consumerKey: **unset**
+        consumerToken: **unset**
+    snap:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        remoteBuild: false
+        repository:
+            enabled: false
+            name: snap
+            token: **unset**
+    spec:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        repository:
+            enabled: false
+            name: spec
+            token: **unset**
+    winget:
+        enabled: false
+        continueOnError: false
+        commitAuthor:
+        package:
+        publisher:
+        installer:
+            type: WIX
+            scope: MACHINE
+            upgradeBehavior: INSTALL
+            dependencies:
+        repository:
+            enabled: false
+            name: winget
+            token: **unset**
+ 
+download:
+    enabled: true
+ 
+assemble:
+    enabled: true
+ 
+deploy:
+    enabled: true
+    active: ALWAYS
+    maven:
+        enabled: true
+        active: ALWAYS
+        pomchecker:
+            version: 1.14.0
+            failOnWarning: true
+            failOnError: true
+            strict: true
+ 
+upload:
+    enabled: true
+ 
+catalog:
+    enabled: true
+    github:
+        enabled: false
+        active: NEVER
+        artifacts: true
+        files: true
+        deployables: true
+    sbom:
+        enabled: true
+        cyclonedx:
+            enabled: false
+            active: NEVER
+            distributions: false
+            files: false
+            pack:
+                enabled: false
+        syft:
+            enabled: false
+            active: NEVER
+            distributions: false
+            files: false
+            pack:
+                enabled: false
+    slsa:
+        enabled: false
+        active: NEVER
+        artifacts: true
+        files: true
+        deployables: true
+    swid:
+        enabled: false
+        name: swid-tag
+        corpus: false
+        patch: false
+ 
+[INFO]  Project version set to 1.0.5
+[INFO]  Release is not snapshot
+[INFO]  Timestamp is 2025-08-20T22:00:18.367217-03:00
+[INFO]  HEAD is at a371dfe
+[INFO]  Platform is linux-x86_64
+[DEBUG] loading extension default-jreleaser-mustache:org.jreleaser.extensions.internal.mustache.DefaultMustacheExtension
+[DEBUG] adding org.jreleaser.extensions.internal.mustache.DefaultMustacheExtensionPoint from default-jreleaser-mustache extension
+[INFO]  yolo set to false
+[INFO]  dry-run set to false
+[INFO]  Deploying Maven artifacts
+[INFO]    [maven] Deploying all staged artifacts
+[INFO]    [maven] No deployers were triggered
+[INFO]  Writing output properties to build/jreleaser/output.properties
+[INFO]  JReleaser succeeded after 0.009 s

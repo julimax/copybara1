@@ -40,7 +40,7 @@ publishing {
     repositories {
         maven {
             name = "staging"
-            url = uri("build/staging-deploy")
+            url = uri(layout.buildDirectory.dir("staging-deploy").get())
         }
     }
     
@@ -122,8 +122,8 @@ jreleaser {
         maven {
             mavenCentral {
                 active.set(org.jreleaser.model.Active.ALWAYS)
-                url.set("https://central.sonatype.com/api/v1/publisher")
-                stagingRepository("build/staging-deploy")
+                // JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
+                // Los artefactos deben estar en el repositorio local de Maven o staging
             }
         }
     }
