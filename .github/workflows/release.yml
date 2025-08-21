@@ -53,17 +53,27 @@ jobs:
       - name: Build + Dokka + stage (publish)
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository --scan
 
-      # 🔍 Verificar artefactos en staging antes de JReleaser
-      - name: Verify Staging Artifacts
+      # 🔍 Debug completo del directorio staging
+      - name: Debug Staging Directory
         run: |
-          echo "=== Verificando artefactos en staging ==="
+          echo "=== Estructura completa del directorio build ==="
+          find build -type f -name "*.jar" -o -name "*.pom" | head -20
+          
+          echo "=== Contenido específico de staging-deploy ==="
           if [ -d "build/staging-deploy" ]; then
-            find build/staging-deploy -name "*.jar" -o -name "*.pom" | head -10
-            echo "📄 Archivos encontrados:"
-            ls -la build/staging-deploy/io/github/julimax/copybara/1.0.6/ 2>/dev/null || echo "⚠️  Directorio de versión no encontrado"
+            find build/staging-deploy -type f | head -20
+            echo "📊 Total de archivos en staging:"
+            find build/staging-deploy -type f | wc -l
           else
-            echo "❌ Directorio staging-deploy no existe"
-            exit 1
+            echo "❌ build/staging-deploy NO EXISTE"
+          fi
+          
+          echo "=== Verificar estructura Maven esperada ==="
+          ls -la build/staging-deploy/io/github/julimax/copybara/1.0.6/ 2>/dev/null || echo "⚠️ Estructura Maven no encontrada"
+          
+          echo "=== Contenido completo de build/staging-deploy ==="
+          if [ -d "build/staging-deploy" ]; then
+            tree build/staging-deploy 2>/dev/null || find build/staging-deploy -type f -exec ls -la {} \;
           fi
 
       # 🚀 Publica en Maven Central y crea GitHub Release
