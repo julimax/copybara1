@@ -84,3 +84,26 @@ jobs:
           
           echo "=== Alternative locations ==="
           find "$RUNNER_TEMP" -name "*build-scan*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
+
+      
+      # 📊 Mostrar logs de build results después de publicar en Maven Central
+      - name: Show Build Results Logs
+        if: always()
+        run: |
+          echo "=== Gradle Build Results Logs ==="
+          if [ -d "$RUNNER_TEMP/.gradle-actions/build-results" ]; then
+            find "$RUNNER_TEMP/.gradle-actions/build-results" -name "*.json" 2>/dev/null | while read file; do
+              echo "📄 Build Results File: $file"
+              if command -v jq >/dev/null 2>&1; then
+                cat "$file" | jq '.' 2>/dev/null || cat "$file"
+              else
+                cat "$file"
+              fi
+              echo "---"
+            done
+          else
+            echo "⚠️  Build results directory not found at $RUNNER_TEMP/.gradle-actions/build-results"
+          fi
+          
+          echo "=== Alternative locations ==="
+          find "$RUNNER_TEMP" -name "*build-results*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
