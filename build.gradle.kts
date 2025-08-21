@@ -131,21 +131,5 @@ jreleaser {
         inceptionYear.set("2024")
     }
     
-    signing {
-        active.set(org.jreleaser.model.Active.NEVER)
-    }
-    
-    deploy {
-        maven {
-            active.set(org.jreleaser.model.Active.ALWAYS)
-            mavenCentral {
-                sonatype {
-                    active.set(org.jreleaser.model.Active.ALWAYS)
-                    url.set("https://central.sonatype.com/api/v1/publisher")
-                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
-                    // JReleaser usará JRELEASER_MAVENCENTRAL_USERNAME y JRELEASER_MAVENCENTRAL_PASSWORD
-                }
-            }
-        }
-    }
+    // Configuración movida a jreleaser.yml para evitar conflictos de API
 }
