@@ -53,6 +53,57 @@ jobs:
       - name: Build + Dokka + publishToMavenLocal
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal --scan
 
+      # 🚀 Opción 1: Deployment directo a Maven Central (recomendado)
+      - name: Deploy to Maven Central (Direct)
+        env:
+          # Credenciales de Sonatype OSSRH
+          OSSRH_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        run: ./gradlew --no-daemon publishToMavenCentral --scan --info --stacktrace
+
+      # 📊 Mostrar logs de build scan después de publicar en Maven Central
+      - name: Show Build Scan Logs
+        if: always()
+        run: |
+          echo "=== Gradle Build Scan Logs ==="
+          if [ -d "$RUNNER_TEMP/.gradle-actions/build-scans" ]; then
+            find "$RUNNER_TEMP/.gradle-actions/build-scans" -name "*.json" 2>/dev/null | while read file; do
+              echo "📄 Build Scan File: $file"
+              if command -v jq >/dev/null 2>&1; then
+                cat "$file" | jq '.' 2>/dev/null || cat "$file"
+              else
+                cat "$file"
+              fi
+              echo "---"
+            done
+          else
+            echo "⚠️  Build scan directory not found at $RUNNER_TEMP/.gradle-actions/build-scans"
+          fi
+          
+          echo "=== Alternative locations ==="
+          find "$RUNNER_TEMP" -name "*build-scan*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
+
+      # 📋 Capturar logs detallados del deployment
+      - name: Show Gradle Build Results
+        if: always()
+        run: |
+          echo "=== Gradle Build Results ==="
+          find $RUNNER_TEMP -name "*.json" -path "*/.gradle-actions/*" 2>/dev/null | head -5 | while read file; do
+            echo " File: $file"
+            cat "$file" | jq '.' 2>/dev/null || cat "$file"
+            echo "---"
+          done
+          
+      - name: Show Gradle Logs
+        if: always()
+        run: |
+          echo "=== Gradle Daemon Logs ==="
+          find ~/.gradle/daemon -name "*.log" 2>/dev/null | head -3 | while read file; do
+            echo " File: $file"
+            tail -50 "$file"
+            echo "---"
+          done
+
       # 🚀 Publica en Maven Central y crea GitHub Release
       - name: JReleaser — Full Release (Central + GitHub Release)
         env:
