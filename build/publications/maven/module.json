@@ -30,10 +30,10 @@
           "name": "copybara-1.0.6.jar",
           "url": "copybara-1.0.6.jar",
           "size": 261,
-          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
-          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
-          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
-          "md5": "3cf29803c346e453c62cc35977ceafc0"
+          "sha512": "19b1d5171a86b8d4e5fa7f928b1ae872b024aca699d7be79f5327fa600d7b5c86facdf4cf6997bb8209be60145745a0b5c2dc9a9d2cf35d16a892a208447be07",
+          "sha256": "9169b2193eec38f9dcf867fae92febf2a4610ba1973b01397dc6ad13e10ed283",
+          "sha1": "9f02c2d4e471fde5a9435e25406798a55259df44",
+          "md5": "2ae94225c049b263ec0084e9267eba9f"
         }
       ]
     },
@@ -62,10 +62,10 @@
           "name": "copybara-1.0.6.jar",
           "url": "copybara-1.0.6.jar",
           "size": 261,
-          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
-          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
-          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
-          "md5": "3cf29803c346e453c62cc35977ceafc0"
+          "sha512": "19b1d5171a86b8d4e5fa7f928b1ae872b024aca699d7be79f5327fa600d7b5c86facdf4cf6997bb8209be60145745a0b5c2dc9a9d2cf35d16a892a208447be07",
+          "sha256": "9169b2193eec38f9dcf867fae92febf2a4610ba1973b01397dc6ad13e10ed283",
+          "sha1": "9f02c2d4e471fde5a9435e25406798a55259df44",
+          "md5": "2ae94225c049b263ec0084e9267eba9f"
         }
       ]
     },
@@ -82,10 +82,10 @@
           "name": "copybara-1.0.6-sources.jar",
           "url": "copybara-1.0.6-sources.jar",
           "size": 261,
-          "sha512": "5926b59de59dec2cb6b914c40ee5d7e4ebdfebf1d866bbb5eca0ce268510f5074a61c3075de9369ae354d5190247cb1f67e978e169802db431d46c05e457f254",
-          "sha256": "3a7e342fa6e6e5e35571f4a18074ebe6afc3292cd941fc6cb9e1e0c0f2ed37fa",
-          "sha1": "f135a7af2c08307704811f353ddba73a071d6cc7",
-          "md5": "3cf29803c346e453c62cc35977ceafc0"
+          "sha512": "7e8434962a4b0abf96a1d25d7049c9e65c09ae69ece3baba150d079f011a50e270c020706dc2302935c245d07b9f19163631894851abb4f30d9a666cb2fd90de",
+          "sha256": "6e86d89891f1da34125d3a0f706d2f7a520af3e6e7fad60ccffc6b7e264a9fce",
+          "sha1": "062f6964e7ed53d979e4b5555c4250c3ba677574",
+          "md5": "a5785cc5881421837e99ff57252e4d8d"
         }
       ]
     }
