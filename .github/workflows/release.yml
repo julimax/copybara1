@@ -51,7 +51,7 @@ jobs:
       
       # Build + dokka + stage (publish)
       - name: Build + Dokka + stage (publish)
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToStagingRepository --scan
+        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository --scan
 
       # 🔍 Verificar artefactos en staging antes de JReleaser
       - name: Verify Staging Artifacts
