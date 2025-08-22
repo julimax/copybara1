@@ -141,16 +141,65 @@ jobs:
           
           # Configurar GPG para modo batch (sin interacción)
           export GPG_TTY=$(tty)
+          export GNUPGHOME="$HOME/.gnupg"
           
-          # Firmar archivos con GPG real usando Key ID específico
+          # Verificar que los archivos existen antes de firmar
+          echo "🔍 Verificando archivos antes de firmar..."
+          ls -la "${PROJECT_NAME}-${VERSION}.jar" "${PROJECT_NAME}-${VERSION}.pom"
+          
+          # Test de passphrase antes de firmar
+          echo "🔐 Probando passphrase..."
+          echo "test" | echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$KEY_ID" --clearsign > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "✅ Passphrase válida"
+          else
+            echo "❌ Error: Passphrase inválida o problema con la clave"
+            exit 1
+          fi
+          
+          # Firmar archivos con GPG usando fingerprint completo
           echo "✍️ Firmando archivos con GPG..."
-          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$KEY_ID" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.jar"
-          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$KEY_ID" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.pom"
+          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$FINGERPRINT" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.jar"
+          if [ $? -ne 0 ]; then
+            echo "❌ Error al firmar JAR"
+            exit 1
+          fi
+          
+          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$FINGERPRINT" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.pom"
+          if [ $? -ne 0 ]; then
+            echo "❌ Error al firmar POM"
+            exit 1
+          fi
+          
+          # Verificar que las firmas se generaron
+          echo "🔍 Verificando que las firmas se generaron..."
+          if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" ]]; then
+            echo "❌ Error: No se generó la firma del JAR"
+            exit 1
+          fi
+          
+          if [[ ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
+            echo "❌ Error: No se generó la firma del POM"
+            exit 1
+          fi
           
           # Verificar signatures generadas
           echo "🔍 Verificando signatures..."
-          gpg --verify "${PROJECT_NAME}-${VERSION}.jar.asc" "${PROJECT_NAME}-${VERSION}.jar" || echo "Warning: JAR signature verification failed"
-          gpg --verify "${PROJECT_NAME}-${VERSION}.pom.asc" "${PROJECT_NAME}-${VERSION}.pom" || echo "Warning: POM signature verification failed"
+          gpg --verify "${PROJECT_NAME}-${VERSION}.jar.asc" "${PROJECT_NAME}-${VERSION}.jar"
+          if [ $? -eq 0 ]; then
+            echo "✅ Firma del JAR válida"
+          else
+            echo "❌ Error: Firma del JAR inválida"
+            exit 1
+          fi
+          
+          gpg --verify "${PROJECT_NAME}-${VERSION}.pom.asc" "${PROJECT_NAME}-${VERSION}.pom"
+          if [ $? -eq 0 ]; then
+            echo "✅ Firma del POM válida"
+          else
+            echo "❌ Error: Firma del POM inválida"
+            exit 1
+          fi
           
           echo "✅ Checksums y signatures generados:"
           ls -la
