@@ -124,17 +124,17 @@ jobs:
           sha1sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.sha1"
           sha1sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.sha1"
           
-          # Crear signatures GPG básicas (mejor que placeholder vacío)
-          # Nota: Para producción real, necesitarás GPG keys reales
-          echo "-----BEGIN PGP SIGNATURE-----" > "${PROJECT_NAME}-${VERSION}.jar.asc"
-          echo "" >> "${PROJECT_NAME}-${VERSION}.jar.asc"
-          echo "iQEzBAABCAAdFiEE..." >> "${PROJECT_NAME}-${VERSION}.jar.asc"
-          echo "-----END PGP SIGNATURE-----" >> "${PROJECT_NAME}-${VERSION}.jar.asc"
+          # Importar y usar la clave GPG real para firmar
+          echo "🔐 Importando clave GPG..."
+          gpg --batch --import "$SIGNING_KEY_FILE"
           
-          echo "-----BEGIN PGP SIGNATURE-----" > "${PROJECT_NAME}-${VERSION}.pom.asc"
-          echo "" >> "${PROJECT_NAME}-${VERSION}.pom.asc"
-          echo "iQEzBAABCAAdFiEE..." >> "${PROJECT_NAME}-${VERSION}.pom.asc"
-          echo "-----END PGP SIGNATURE-----" >> "${PROJECT_NAME}-${VERSION}.pom.asc"
+          # Configurar GPG para modo batch (sin interacción)
+          export GPG_TTY=$(tty)
+          
+          # Firmar archivos con GPG real
+          echo "✍️ Firmando archivos con GPG..."
+          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --detach-sign --armor "${PROJECT_NAME}-${VERSION}.jar"
+          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --detach-sign --armor "${PROJECT_NAME}-${VERSION}.pom"
           
           echo "✅ Checksums y signatures generados:"
           ls -la
