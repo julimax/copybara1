@@ -129,7 +129,7 @@ jobs:
           gpg --batch --import "$SIGNING_KEY_FILE"
           
           # Obtener el Key ID y configurar trust
-          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | tail -8c)
+          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | tail -c9)
           echo "🔑 Key ID detectado: $KEY_ID"
           
           # Configurar trust para la clave (ultimate trust)
