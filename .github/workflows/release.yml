@@ -103,8 +103,9 @@ jobs:
           echo "   JAR: $JAR_FILE ($(du -h $JAR_FILE | cut -f1))"
           echo "   POM: $POM_FILE ($(du -h $POM_FILE | cut -f1))"
           
-          # Crear bundle temporal
-          BUNDLE_DIR="build/maven-central-bundle"
+          # Crear bundle temporal con estructura de directorios correcta
+          BUNDLE_ROOT="build/maven-central-bundle"
+          BUNDLE_DIR="$BUNDLE_ROOT/io/github/julimax/${PROJECT_NAME}/${VERSION}"
           mkdir -p "$BUNDLE_DIR"
           
           # Copiar artifacts al bundle con nombres correctos
@@ -140,9 +141,9 @@ jobs:
           
           cd - > /dev/null
           
-          # Crear el bundle ZIP
+          # Crear el bundle ZIP desde la raíz del bundle
           BUNDLE_FILE="build/${PROJECT_NAME}-${VERSION}-bundle.zip"
-          cd "$BUNDLE_DIR"
+          cd "$BUNDLE_ROOT"
           zip -r "../$(basename "$BUNDLE_FILE")" .
           cd - > /dev/null
           
