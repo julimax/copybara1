@@ -1,10 +1,8 @@
-
-# .github/workflows/release-central.yml
-name: Release — Maven Central (JReleaser)
+name: Release to Maven Central
 
 on:
   push:
-    tags: ['v*']          # ej: v1.0.0
+    tags: ['v*']
   workflow_dispatch:
 
 concurrency:
@@ -13,129 +11,57 @@ concurrency:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # necesario para crear el GitHub Release
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          fetch-tags: true
 
-
-      - name: Hacer ejecutable la wrapper
-        run: chmod +x ./gradlew
-
-      - name: Configurar Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          java-version: 17
+          distribution: 'temurin'
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_CENTRAL_TOKEN
+          gpg-private-key: ${{ secrets.SIGNING_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+          cache: gradle
 
-      - name: Cache de Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Cargar clave PGP 
+      # Release to Maven Central using Gradle directly
+      - name: Release to Maven Central
         env:
-          PGP_PRIVATE: ${{ secrets.SIGNING_KEY }}          # contenido de private.asc
-          PGP_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
-          set -euo pipefail
-          KEY_FILE="$RUNNER_TEMP/pgp-private.asc"
-          printf '%s' "$PGP_PRIVATE" > "$KEY_FILE"
-          chmod 600 "$KEY_FILE"
-          echo "SIGNING_KEY_FILE=$KEY_FILE" >> "$GITHUB_ENV"   # <-- este nombre
-          echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
-      
-      
-      # Build + dokka + stage (publish)
-      - name: Build + Dokka + stage (publish)
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository
+          export GPG_TTY=$(tty)
+          git config user.name "${{ github.event.head_commit.committer.name }}"
+          git config user.email "${{ github.event.head_commit.committer.email }}"
+          ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToSonatype closeAndReleaseSonatypeStagingRepository
 
-      # 🔍 Verificar artefactos en staging antes de JReleaser
-      - name: Verify Staging Artifacts
-        run: |
-          echo "=== Verificando artefactos en staging ==="
-          if [ -d "build/staging-deploy" ]; then
-            find build/staging-deploy -name "*.jar" -o -name "*.pom" | head -10
-            echo "📄 Archivos encontrados:"
-            ls -la build/staging-deploy/io/github/julimax/copybara/1.0.6/ 2>/dev/null || echo "⚠️  Directorio de versión no encontrado"
-          else
-            echo "❌ Directorio staging-deploy no existe"
-            exit 1
-          fi
-      # 🚀 Publica en Maven Central y crea GitHub Release
-      - name: JReleaser — Full Release (Central + GitHub Release)
+      # Create a GitHub release using JReleaser
+      - name: Run JReleaser
+        uses: jreleaser/release-action@v2
         env:
-          # Credenciales del Central Publisher Portal (Sonatype)
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew --no-daemon jreleaserDeploy
 
-      # 📊 Mostrar logs de build scan después de publicar en Maven Central
-      - name: Show Build Scan Logs
+      # Persist logs
+      - name: JReleaser release output
         if: always()
-        run: |
-          echo "=== Gradle Build Scan Logs ==="
-          if [ -d "$RUNNER_TEMP/.gradle-actions/build-scans" ]; then
-            find "$RUNNER_TEMP/.gradle-actions/build-scans" -name "*.json" 2>/dev/null | while read file; do
-              echo "📄 Build Scan File: $file"
-              if command -v jq >/dev/null 2>&1; then
-                cat "$file" | jq '.' 2>/dev/null || cat "$file"
-              else
-                cat "$file"
-              fi
-              echo "---"
-            done
-          else
-            echo "⚠️  Build scan directory not found at $RUNNER_TEMP/.gradle-actions/build-scans"
-          fi
-          
-          echo "=== Alternative locations ==="
-          find "$RUNNER_TEMP" -name "*build-scan*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
-      
-      # 📊 Mostrar logs de build results después de publicar en Maven Central
-      - name: Show Build Results Logs
-        if: always()
-        run: |
-          echo "=== Gradle Build Results Logs ==="
-          if [ -d "$RUNNER_TEMP/.gradle-actions/build-results" ]; then
-            find "$RUNNER_TEMP/.gradle-actions/build-results" -name "*.json" 2>/dev/null | while read file; do
-              echo "📄 Build Results File: $file"
-              if command -v jq >/dev/null 2>&1; then
-                cat "$file" | jq '.' 2>/dev/null || cat "$file"
-              else
-                cat "$file"
-              fi
-              echo "---"
-            done
-          else
-            echo "⚠️  Build results directory not found at $RUNNER_TEMP/.gradle-actions/build-results"
-          fi
-          
-          echo "=== Alternative locations ==="
-          find "$RUNNER_TEMP" -name "*build-results*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
-      # 🔍 Mostrar logs detallados de JReleaser
-      - name: Show JReleaser Logs
-        if: always()
-        run: |
-          echo "=== JReleaser Logs ==="
-          if [ -d "build/jreleaser" ]; then
-            find build/jreleaser -name "*.log" -o -name "*.txt" | while read file; do
-              echo "📄 JReleaser Log: $file"
-              cat "$file"
-              echo "---"
-            done
-          else
-            echo "⚠️  JReleaser build directory not found"
-          fi
-          
-          echo "=== Gradle Daemon Logs (últimas líneas) ==="
-          find ~/.gradle/daemon -name "*.log" 2>/dev/null | head -1 | while read file; do
-            echo "📄 Daemon Log: $file"
-            tail -100 "$file"
-          done
+        uses: actions/upload-artifact@v4
+        with:
+          name: jreleaser-release
+          path: |
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties

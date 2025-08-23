@@ -2,8 +2,8 @@ plugins {
     kotlin("jvm") version "1.9.10"
     `maven-publish`
     signing
-    id("org.jreleaser") version "1.19.0"
-    id("org.jetbrains.dokka") version "2.0.0"        // Docs para Kotlin
+    id("org.jetbrains.dokka") version "2.0.0"
+    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
     application
 }
 
@@ -19,48 +19,23 @@ dependencies {
 
 application { mainClass.set("MainKt") }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
-}
-
 java {
-    // crea automáticamente sourcesJar; el javadocJar lo haremos con Dokka
     withSourcesJar()
 }
 
-// --- Dokka -> javadocJar (Kotlin) ---
+// Javadoc JAR usando Dokka
 tasks.register<org.gradle.jvm.tasks.Jar>("javadocJar") {
-    dependsOn(tasks.named("dokkaJavadoc"))  // genera Javadoc-style con Dokka
+    dependsOn(tasks.named("dokkaJavadoc"))
     from(tasks.named("dokkaJavadoc"))
     archiveClassifier.set("javadoc")
 }
 
-// --- Publicación (POM completo + artifacts) ---
+// Maven Central publishing
 publishing {
-    repositories {
-        maven {
-            name = "staging"
-            url = uri(layout.buildDirectory.dir("staging-deploy").get())
-        }
-        // Maven Central (Sonatype OSSRH) - alternativa directa a JReleaser
-        maven {
-            name = "sonatype"
-            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-            credentials {
-                username = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
-                password = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
-            }
-        }
-    }
-    
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
-            artifactId = "copybara" 
             artifact(tasks.named("javadocJar"))
-            // sourcesJar ya viene de 'java.withSourcesJar()'
 
             pom {
                 name.set("Copybara Kotlin Hello World")
@@ -81,6 +56,7 @@ publishing {
                         email.set("julimax951@gmail.com")
                     }
                 }
+                
                 scm {
                     connection.set("scm:git:https://github.com/julimax/copybara1.git")
                     developerConnection.set("scm:git:git@github.com:julimax/copybara1.git")
@@ -91,32 +67,25 @@ publishing {
     }
 }
 
-// --- Firma PGP en memoria (requerida por Central) ---
-signing {
-    val keyFile = System.getenv("SIGNING_KEY_FILE")
-    val pass = System.getenv("SIGNING_PASSPHRASE")
-
-    if (!keyFile.isNullOrBlank()) {
-        val key = file(keyFile).readText(Charsets.UTF_8)
-        useInMemoryPgpKeys(key, pass)
-        sign(publishing.publications)
-    } else {
-        logger.lifecycle("Signing disabled (no SIGNING_KEY_FILE).")
+// Nexus publishing configuration
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username.set(System.getenv("MAVEN_USERNAME"))
+            password.set(System.getenv("MAVEN_CENTRAL_TOKEN"))
+        }
     }
 }
 
-// --- Tareas personalizadas para deployment ---
-tasks.register("publishStaging") {
-    dependsOn("publishMavenPublicationToStagingRepository")
-    description = "Publica los artefactos al repositorio de staging local"
-    group = "publishing"
-}
+// PGP signing
+signing {
+    val signingKey = System.getenv("ORG_GRADLE_PROJECT_signingKey")
+    val signingPassword = System.getenv("ORG_GRADLE_PROJECT_signingPassword")
 
-tasks.register("publishToMavenCentral") {
-    dependsOn("publishMavenPublicationToSonatypeRepository")
-    description = "Publica los artefactos directamente a Maven Central (Sonatype OSSRH)"
-    group = "publishing"
+    if (!signingKey.isNullOrBlank() && !signingPassword.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
+    }
 }
-
-// --- Maven Central deployment via direct HTTP upload ---
-// Using Sonatype Central Publisher API directly instead of JReleaser
