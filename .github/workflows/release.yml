@@ -142,6 +142,28 @@ jobs:
             exit 1
           fi
           
+          # Verificar detalles de la clave GPG para Maven Central
+          echo "🔍 Verificando detalles de la clave GPG..."
+          gpg --list-secret-keys --with-colons "$KEY_ID" | while IFS=':' read -r type trust length algo keyid creation expiration uid ownertrust userid sigclass keyflags issuer notation pref hash compression updpref keyserver flags; do
+            if [[ "$type" == "sec" ]]; then
+              echo "🔑 Algoritmo: $algo, Longitud: $length bits"
+              if [[ "$length" -lt 2048 ]]; then
+                echo "⚠️ Warning: Maven Central recomienda claves de al menos 2048 bits"
+              fi
+              if [[ -n "$expiration" && "$expiration" != "" ]]; then
+                echo "📅 Expiración: $expiration"
+              else
+                echo "♾️ Clave sin expiración"
+              fi
+            fi
+          done
+          
+          # Publicar la clave pública en keyservers (ya está publicada pero intentamos de nuevo)
+          echo "🌐 Verificando/publicando clave pública en keyservers..."
+          echo "📝 Nota: La clave ya fue publicada manualmente, pero intentamos de nuevo por seguridad"
+          gpg --batch --keyserver keyserver.ubuntu.com --send-keys "$KEY_ID" 2>&1 || echo "⚠️ Info: Clave ya publicada o error en keyserver.ubuntu.com"
+          gpg --batch --keyserver keys.openpgp.org --send-keys "$KEY_ID" 2>&1 || echo "⚠️ Info: Clave ya publicada o error en keys.openpgp.org"
+          
           # Configurar GPG para modo batch
           export GPG_TTY=$(tty)
           
