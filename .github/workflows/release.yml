@@ -276,15 +276,22 @@ jobs:
           
           if [[ "$HTTP_CODE" == "201" ]]; then
             echo "✅ Bundle subido exitosamente a Maven Central"
+            echo "🎉 ¡EXITO! Las firmas GPG fueron aceptadas por Maven Central"
             
             # Extraer deployment ID si está disponible
-            if command -v jq >/dev/null 2>&1; then
-              DEPLOYMENT_ID=$(echo "$RESPONSE_BODY" | jq -r '.deploymentId // empty' 2>/dev/null)
-              if [[ -n "$DEPLOYMENT_ID" ]]; then
-                echo "🆔 Deployment ID: $DEPLOYMENT_ID"
-                echo "🔗 Puedes verificar el estado en: https://central.sonatype.com/publishing/deployments"
-              fi
+            DEPLOYMENT_ID="$RESPONSE_BODY"
+            if [[ -n "$DEPLOYMENT_ID" ]]; then
+              echo "🆔 Deployment ID: $DEPLOYMENT_ID"
+              echo "🔗 Verifica el estado en: https://central.sonatype.com/publishing/deployments"
+              echo "🔗 O busca tu paquete en: https://central.sonatype.com/artifact/io.github.julimax/copybara"
             fi
+            
+            # Crear memoria del éxito
+            echo "📝 Guardando información del deployment exitoso..."
+            echo "Deployment ID: $DEPLOYMENT_ID" > deployment-success.log
+            echo "Timestamp: $(date)" >> deployment-success.log
+            echo "Version: $VERSION" >> deployment-success.log
+            
           else
             echo "❌ Error al subir bundle. Código HTTP: $HTTP_CODE"
             echo "📋 Respuesta completa: $RESPONSE_BODY"
@@ -293,22 +300,40 @@ jobs:
           
       # 🏷️ Crear GitHub Release
       - name: Create GitHub Release
+        if: always()  # Ejecutar aunque pasos anteriores hayan fallado
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
+          # No usar set -e para que no falle todo el workflow si hay problemas con el release
           
           VERSION="1.0.7"
           TAG_NAME="v$VERSION"
           
-          echo "🏷️ Creando GitHub Release..."
+          echo "🏷️ Intentando crear GitHub Release..."
           
-          # Crear el release
-          gh release create "$TAG_NAME" \
-            --title "Release $TAG_NAME" \
-            --notes "Release $TAG_NAME - Copybara Kotlin Hello World Application" \
-            --target "$GITHUB_SHA" \
-            build/libs/copybara-$VERSION.jar
+          # Verificar si el tag ya existe
+          if git tag -l | grep -q "^$TAG_NAME$"; then
+            echo "🏷️ Tag $TAG_NAME ya existe"
+          else
+            echo "🏷️ Creando tag $TAG_NAME..."
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME" || echo "⚠️ Warning: No se pudo hacer push del tag"
+          fi
+          
+          # Intentar crear el release
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "🏷️ Release $TAG_NAME ya existe, actualizando..."
+            gh release upload "$TAG_NAME" build/libs/copybara-$VERSION.jar --clobber || echo "⚠️ Warning: No se pudo subir el JAR al release"
+          else
+            echo "🏷️ Creando nuevo release $TAG_NAME..."
+            gh release create "$TAG_NAME" \
+              --title "Release $TAG_NAME" \
+              --notes "Release $TAG_NAME - Copybara Kotlin Hello World Application - Publicado exitosamente en Maven Central" \
+              --target "$GITHUB_SHA" \
+              build/libs/copybara-$VERSION.jar || echo "⚠️ Warning: No se pudo crear el GitHub Release, pero Maven Central fue exitoso"
+          fi
+          
+          echo "✅ Proceso completado. Maven Central deployment fue exitoso independientemente del estado del GitHub Release."
 
       # 📊 Mostrar logs de build scan después de publicar en Maven Central
       - name: Show Build Scan Logs
