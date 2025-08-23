@@ -54,7 +54,7 @@ jobs:
         run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository --scan
 
 
-      # 🚀 Subir artifacts a Maven Central usando HTTP directo
+      # 🚀 Subir artifacts a Maven Central
       - name: Upload to Maven Central via HTTP
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -67,149 +67,62 @@ jobs:
           PROJECT_NAME="copybara"
           VERSION=$(grep '^version = ' build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
           BASE_URL="https://central.sonatype.com/api/v1/publisher"
-
           
-          echo "🚀 Subiendo artifacts a Maven Central..."
-          echo "   Namespace: $NAMESPACE"
-          echo "   Project: $PROJECT_NAME"
-          echo "   Version: $VERSION"
+          echo "🚀 Preparando artifacts para Maven Central..."
           
-          # Debug: verificar credenciales (sin mostrar el token completo)
-          echo "🔍 Debug de credenciales:"
-          echo "   Username: ${OSSRH_USERNAME:-'NOT_SET'}"
-          echo "   Password length: ${#OSSRH_PASSWORD}"
-          echo "   Password starts with: ${OSSRH_PASSWORD:0:8}..."
-          
-          if [[ -z "$OSSRH_USERNAME" || -z "$OSSRH_PASSWORD" ]]; then
-            echo "❌ Error: OSSRH_USERNAME o OSSRH_PASSWORD no están definidos"
-            exit 1
-          fi
-          
-          # Verificar que existan los artifacts
+          # Verificar artifacts
           JAR_FILE="build/libs/${PROJECT_NAME}-${VERSION}.jar"
           POM_FILE="build/publications/maven/pom-default.xml"
+          [[ ! -f "$JAR_FILE" ]] && { echo "❌ JAR no encontrado"; exit 1; }
+          [[ ! -f "$POM_FILE" ]] && { echo "❌ POM no encontrado"; exit 1; }
           
-          if [[ ! -f "$JAR_FILE" ]]; then
-            echo "❌ Error: No se encontró el JAR: $JAR_FILE"
-            exit 1
-          fi
-          
-          if [[ ! -f "$POM_FILE" ]]; then
-            echo "❌ Error: No se encontró el POM: $POM_FILE"
-            exit 1
-          fi
-          
-          echo "✅ Artifacts encontrados:"
-          echo "   JAR: $JAR_FILE ($(du -h $JAR_FILE | cut -f1))"
-          echo "   POM: $POM_FILE ($(du -h $POM_FILE | cut -f1))"
-          
-          # Crear bundle temporal con estructura de directorios correcta
+          # Crear bundle
           BUNDLE_ROOT="build/maven-central-bundle"
           BUNDLE_DIR="$BUNDLE_ROOT/io/github/julimax/${PROJECT_NAME}/${VERSION}"
           mkdir -p "$BUNDLE_DIR"
-          
-          # Copiar artifacts al bundle con nombres correctos
           cp "$JAR_FILE" "$BUNDLE_DIR/${PROJECT_NAME}-${VERSION}.jar"
           cp "$POM_FILE" "$BUNDLE_DIR/${PROJECT_NAME}-${VERSION}.pom"
           
-          # Generar checksums requeridos por Maven Central
-          echo "🔐 Generando checksums..."
+          # Generar checksums
           cd "$BUNDLE_DIR"
-          
-          # MD5 checksums (solo el hash, sin filename)
           md5sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.md5"
           md5sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.md5"
-          
-          # SHA1 checksums (solo el hash, sin filename)
           sha1sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.sha1"
           sha1sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.sha1"
           
-          # Importar clave GPG y firmar archivos
-          echo "🔐 Configurando GPG y firmando archivos..."
+          # Firmar archivos con GPG
           gpg --batch --import "$SIGNING_KEY_FILE"
-          
-          # Obtener Key ID
           KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^fpr:' | head -1 | cut -d':' -f10)
           [[ -z "$KEY_ID" ]] && KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec:' | head -1 | cut -d':' -f5)
+          [[ -z "$KEY_ID" ]] && { echo "❌ Key ID no encontrado"; exit 1; }
           
-          if [[ -z "$KEY_ID" ]]; then
-            echo "❌ Error: No se pudo obtener el Key ID"
-            exit 1
-          fi
-          
-          # Publicar clave en keyserver
           gpg --batch --keyserver keyserver.ubuntu.com --send-keys "$KEY_ID" >/dev/null 2>&1 || true
-          
-          # Firmar archivos
           export GPG_TTY=$(tty)
           gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar"
           gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom"
           
-          # Verificar que las firmas se generaron
-          if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" || ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
-            echo "❌ Error: No se generaron las firmas GPG"
-            exit 1
-          fi
-          
-          echo "✅ Archivos firmados exitosamente"
-          
-          echo "✅ Checksums y signatures generados:"
-          ls -la
+          [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" || ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]] && { echo "❌ Firmas no generadas"; exit 1; }
           
           cd - > /dev/null
           
-          # Crear el bundle ZIP desde la raíz del bundle
+          # Crear y subir bundle
           BUNDLE_FILE="build/${PROJECT_NAME}-${VERSION}-bundle.zip"
-          cd "$BUNDLE_ROOT"
-          zip -r "../$(basename "$BUNDLE_FILE")" .
-          cd - > /dev/null
+          cd "$BUNDLE_ROOT" && zip -r "../$(basename "$BUNDLE_FILE")" . && cd - > /dev/null
           
-          echo "📦 Bundle creado: $BUNDLE_FILE ($(du -h $BUNDLE_FILE | cut -f1))"
-          
-          # Subir el bundle
-          echo "📤 Subiendo bundle a Maven Central..."
-          echo "🔗 URL: $BASE_URL/upload"
-          echo "🔑 Authorization header: Basic ${OSSRH_USERNAME}:${OSSRH_PASSWORD:0:8}..."
-          echo "📦 Bundle file: $BUNDLE_FILE"
-          echo "📝 Form data: name=$PROJECT_NAME, namespace=$NAMESPACE"
-          
-          # Hacer la petición con más debug
-          UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" \
-            -X POST \
-            "$BASE_URL/upload" \
+          echo "📤 Subiendo a Maven Central..."
+          UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/upload" \
             -u "$OSSRH_USERNAME:$OSSRH_PASSWORD" \
-            -H "User-Agent: GitHub-Actions-Upload/1.0" \
-            -F "bundle=@$BUNDLE_FILE" \
-            -F "name=$PROJECT_NAME" \
-            -F "namespace=$NAMESPACE")
+            -F "bundle=@$BUNDLE_FILE" -F "name=$PROJECT_NAME" -F "namespace=$NAMESPACE")
           
           HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
           RESPONSE_BODY=$(echo "$UPLOAD_RESPONSE" | head -n -1)
           
-          echo "📋 Código HTTP: $HTTP_CODE"
-          echo "📋 Respuesta: $RESPONSE_BODY"
-          
           if [[ "$HTTP_CODE" == "201" ]]; then
-            echo "✅ Bundle subido exitosamente a Maven Central"
-            echo "🎉 ¡EXITO! Las firmas GPG fueron aceptadas por Maven Central"
-            
-            # Extraer deployment ID si está disponible
-            DEPLOYMENT_ID="$RESPONSE_BODY"
-            if [[ -n "$DEPLOYMENT_ID" ]]; then
-              echo "🆔 Deployment ID: $DEPLOYMENT_ID"
-              echo "🔗 Verifica el estado en: https://central.sonatype.com/publishing/deployments"
-              echo "🔗 O busca tu paquete en: https://central.sonatype.com/artifact/io.github.julimax/copybara"
-            fi
-            
-            # Crear memoria del éxito
-            echo "📝 Guardando información del deployment exitoso..."
-            echo "Deployment ID: $DEPLOYMENT_ID" > deployment-success.log
-            echo "Timestamp: $(date)" >> deployment-success.log
-            echo "Version: $VERSION" >> deployment-success.log
-            
+            echo "✅ ¡Subido exitosamente a Maven Central!"
+            echo "🆔 Deployment ID: $RESPONSE_BODY"
+            echo "🔗 https://central.sonatype.com/publishing/deployments"
           else
-            echo "❌ Error al subir bundle. Código HTTP: $HTTP_CODE"
-            echo "📋 Respuesta completa: $RESPONSE_BODY"
+            echo "❌ Error HTTP $HTTP_CODE: $RESPONSE_BODY"
             exit 1
           fi
           
