@@ -158,19 +158,45 @@ jobs:
           
           # Firmar archivos con GPG usando el Key ID correcto
           echo "✍️ Firmando archivos con GPG..."
-          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar"
+          
+          # Firmar JAR con debugging
+          echo "🔍 Firmando JAR: ${PROJECT_NAME}-${VERSION}.jar"
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar" 2>&1
+          GPG_EXIT_CODE=$?
+          if [[ $GPG_EXIT_CODE -ne 0 ]]; then
+            echo "❌ Error: GPG falló al firmar JAR (exit code: $GPG_EXIT_CODE)"
+            exit 1
+          fi
+          
           if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" ]]; then
             echo "❌ Error: No se generó la firma del JAR"
             ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
             exit 1
           fi
           
-          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom"
+          # Firmar POM con debugging
+          echo "🔍 Firmando POM: ${PROJECT_NAME}-${VERSION}.pom"
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom" 2>&1
+          GPG_EXIT_CODE=$?
+          if [[ $GPG_EXIT_CODE -ne 0 ]]; then
+            echo "❌ Error: GPG falló al firmar POM (exit code: $GPG_EXIT_CODE)"
+            exit 1
+          fi
+          
           if [[ ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
             echo "❌ Error: No se generó la firma del POM"
             ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
             exit 1
           fi
+          
+          # Mostrar información de las firmas generadas
+          echo "✅ Firmas generadas exitosamente:"
+          ls -la *.asc
+          echo "🔍 Contenido de las firmas:"
+          echo "=== JAR signature ==="
+          head -3 "${PROJECT_NAME}-${VERSION}.jar.asc"
+          echo "=== POM signature ==="
+          head -3 "${PROJECT_NAME}-${VERSION}.pom.asc"
           
           # Verificar signatures generadas
           echo "🔍 Verificando signatures..."
