@@ -25,10 +25,11 @@ deploy:
       failOnError: true
 
     mavenCentral:
-      app:
-        active: ALWAYS
-        url: https://central.sonatype.com/api/v1/publisher
-        # donde Gradle dejó tus artefactos firmados
-        stagingRepositories:
-          - "{{projectBaseDir}}/build/staging-deploy"
-        applyMavenCentralRules: true
+      active: ALWAYS
+      url: https://central.sonatype.com/api/v1/publisher
+      username: "{{JRELEASER_MAVENCENTRAL_USERNAME}}"
+      password: "{{JRELEASER_MAVENCENTRAL_PASSWORD}}"
+      # donde Gradle dejó tus artefactos firmados
+      stagingRepositories:
+        - "{{projectBaseDir}}/build/staging-deploy"
+      applyMavenCentralRules: true
