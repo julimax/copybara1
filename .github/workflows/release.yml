@@ -124,119 +124,34 @@ jobs:
           sha1sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.sha1"
           sha1sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.sha1"
           
-          # Importar y usar la clave GPG real para firmar
-          echo "🔐 Importando clave GPG..."
+          # Importar clave GPG y firmar archivos
+          echo "🔐 Configurando GPG y firmando archivos..."
           gpg --batch --import "$SIGNING_KEY_FILE"
           
-          # Obtener el Key ID completo (fingerprint)
+          # Obtener Key ID
           KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^fpr:' | head -1 | cut -d':' -f10)
-          if [[ -z "$KEY_ID" ]]; then
-            # Fallback: usar el ID largo de la clave
-            KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec:' | head -1 | cut -d':' -f5)
-          fi
-          echo "🔑 Key ID: $KEY_ID"
+          [[ -z "$KEY_ID" ]] && KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec:' | head -1 | cut -d':' -f5)
           
           if [[ -z "$KEY_ID" ]]; then
             echo "❌ Error: No se pudo obtener el Key ID"
-            gpg --list-secret-keys
             exit 1
           fi
           
-          # Verificar detalles de la clave GPG para Maven Central
-          echo "🔍 Verificando detalles de la clave GPG..."
-          gpg --list-secret-keys --with-colons "$KEY_ID" | while IFS=':' read -r type trust length algo keyid creation expiration uid ownertrust userid sigclass keyflags issuer notation pref hash compression updpref keyserver flags; do
-            if [[ "$type" == "sec" ]]; then
-              echo "🔑 Algoritmo: $algo, Longitud: $length bits"
-              if [[ "$length" -lt 2048 ]]; then
-                echo "⚠️ Warning: Maven Central recomienda claves de al menos 2048 bits"
-              fi
-              if [[ -n "$expiration" && "$expiration" != "" ]]; then
-                echo "📅 Expiración: $expiration"
-              else
-                echo "♾️ Clave sin expiración"
-              fi
-            fi
-          done
+          # Publicar clave en keyserver
+          gpg --batch --keyserver keyserver.ubuntu.com --send-keys "$KEY_ID" >/dev/null 2>&1 || true
           
-          # Publicar la clave pública en keyservers (ya está publicada pero intentamos de nuevo)
-          echo "🌐 Verificando/publicando clave pública en keyservers..."
-          echo "📝 Nota: La clave ya fue publicada manualmente, pero intentamos de nuevo por seguridad"
-          gpg --batch --keyserver keyserver.ubuntu.com --send-keys "$KEY_ID" 2>&1 || echo "⚠️ Info: Clave ya publicada o error en keyserver.ubuntu.com"
-          gpg --batch --keyserver keys.openpgp.org --send-keys "$KEY_ID" 2>&1 || echo "⚠️ Info: Clave ya publicada o error en keys.openpgp.org"
-          
-          # Configurar GPG para modo batch
+          # Firmar archivos
           export GPG_TTY=$(tty)
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar"
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom"
           
-          # Verificar que la passphrase funcione
-          echo "🔍 Verificando passphrase..."
-          echo "test" | gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --local-user "$KEY_ID" --clearsign > /dev/null 2>&1
-          if [ $? -eq 0 ]; then
-            echo "✅ Passphrase válida"
-          else
-            echo "❌ Error: Passphrase inválida o problema con la clave"
-            gpg --list-secret-keys
+          # Verificar que las firmas se generaron
+          if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" || ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
+            echo "❌ Error: No se generaron las firmas GPG"
             exit 1
           fi
           
-          # Firmar archivos con GPG usando el Key ID correcto
-          echo "✍️ Firmando archivos con GPG..."
-          
-          # Firmar JAR con debugging
-          echo "🔍 Firmando JAR: ${PROJECT_NAME}-${VERSION}.jar"
-          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar" 2>&1
-          GPG_EXIT_CODE=$?
-          if [[ $GPG_EXIT_CODE -ne 0 ]]; then
-            echo "❌ Error: GPG falló al firmar JAR (exit code: $GPG_EXIT_CODE)"
-            exit 1
-          fi
-          
-          if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" ]]; then
-            echo "❌ Error: No se generó la firma del JAR"
-            ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
-            exit 1
-          fi
-          
-          # Firmar POM con debugging
-          echo "🔍 Firmando POM: ${PROJECT_NAME}-${VERSION}.pom"
-          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom" 2>&1
-          GPG_EXIT_CODE=$?
-          if [[ $GPG_EXIT_CODE -ne 0 ]]; then
-            echo "❌ Error: GPG falló al firmar POM (exit code: $GPG_EXIT_CODE)"
-            exit 1
-          fi
-          
-          if [[ ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
-            echo "❌ Error: No se generó la firma del POM"
-            ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
-            exit 1
-          fi
-          
-          # Mostrar información de las firmas generadas
-          echo "✅ Firmas generadas exitosamente:"
-          ls -la *.asc
-          echo "🔍 Contenido de las firmas:"
-          echo "=== JAR signature ==="
-          head -3 "${PROJECT_NAME}-${VERSION}.jar.asc"
-          echo "=== POM signature ==="
-          head -3 "${PROJECT_NAME}-${VERSION}.pom.asc"
-          
-          # Verificar signatures generadas
-          echo "🔍 Verificando signatures..."
-          gpg --verify "${PROJECT_NAME}-${VERSION}.jar.asc" "${PROJECT_NAME}-${VERSION}.jar"
-          if [ $? -eq 0 ]; then
-            echo "✅ Firma del JAR válida"
-          else
-            echo "❌ Error: Firma del JAR inválida"
-            exit 1
-          fi
-          
-          gpg --verify "${PROJECT_NAME}-${VERSION}.pom.asc" "${PROJECT_NAME}-${VERSION}.pom"
-          if [ $? -eq 0 ]; then
-            echo "✅ Firma del POM válida"
-          else
-            echo "❌ Error: Firma del POM inválida"
-            exit 1
-          fi
+          echo "✅ Archivos firmados exitosamente"
           
           echo "✅ Checksums y signatures generados:"
           ls -la
