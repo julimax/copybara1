@@ -128,58 +128,47 @@ jobs:
           echo "🔐 Importando clave GPG..."
           gpg --batch --import "$SIGNING_KEY_FILE"
           
-          # Obtener el Key ID para firmar
-          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | tail -c9)
-          echo "🔑 Key ID detectado: $KEY_ID"
+          # Obtener el Key ID completo (fingerprint)
+          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^fpr:' | head -1 | cut -d':' -f10)
+          if [[ -z "$KEY_ID" ]]; then
+            # Fallback: usar el ID largo de la clave
+            KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec:' | head -1 | cut -d':' -f5)
+          fi
+          echo "🔑 Key ID: $KEY_ID"
           
-          # Obtener el fingerprint completo para configurar trust
-          FINGERPRINT=$(gpg --list-secret-keys --with-colons | grep '^fpr' | cut -d':' -f10 | head -1)
-          echo "🔑 Fingerprint completo: $FINGERPRINT"
+          if [[ -z "$KEY_ID" ]]; then
+            echo "❌ Error: No se pudo obtener el Key ID"
+            gpg --list-secret-keys
+            exit 1
+          fi
           
-          # Configurar trust para la clave (ultimate trust)
-          echo "$FINGERPRINT:6:" | gpg --batch --import-ownertrust
-          
-          # Configurar GPG para modo batch (sin interacción)
+          # Configurar GPG para modo batch
           export GPG_TTY=$(tty)
-          export GNUPGHOME="$HOME/.gnupg"
           
-          # Verificar que los archivos existen antes de firmar
-          echo "🔍 Verificando archivos antes de firmar..."
-          ls -la "${PROJECT_NAME}-${VERSION}.jar" "${PROJECT_NAME}-${VERSION}.pom"
-          
-          # Test de passphrase antes de firmar
-          echo "🔐 Probando passphrase..."
-          echo "test" | echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$KEY_ID" --clearsign > /dev/null 2>&1
+          # Verificar que la passphrase funcione
+          echo "🔍 Verificando passphrase..."
+          echo "test" | gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --local-user "$KEY_ID" --clearsign > /dev/null 2>&1
           if [ $? -eq 0 ]; then
             echo "✅ Passphrase válida"
           else
             echo "❌ Error: Passphrase inválida o problema con la clave"
+            gpg --list-secret-keys
             exit 1
           fi
           
-          # Firmar archivos con GPG usando fingerprint completo
+          # Firmar archivos con GPG usando el Key ID correcto
           echo "✍️ Firmando archivos con GPG..."
-          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$FINGERPRINT" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.jar"
-          if [ $? -ne 0 ]; then
-            echo "❌ Error al firmar JAR"
-            exit 1
-          fi
-          
-          echo "$SIGNING_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --local-user "$FINGERPRINT" --detach-sign --armor "${PROJECT_NAME}-${VERSION}.pom"
-          if [ $? -ne 0 ]; then
-            echo "❌ Error al firmar POM"
-            exit 1
-          fi
-          
-          # Verificar que las firmas se generaron
-          echo "🔍 Verificando que las firmas se generaron..."
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar"
           if [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" ]]; then
             echo "❌ Error: No se generó la firma del JAR"
+            ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
             exit 1
           fi
           
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom"
           if [[ ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]]; then
             echo "❌ Error: No se generó la firma del POM"
+            ls -la *.asc 2>/dev/null || echo "No hay archivos .asc"
             exit 1
           fi
           
