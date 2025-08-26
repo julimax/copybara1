@@ -28,7 +28,7 @@ jobs:
 
       - name: Clone Copybara versión v20250818
         run: |
-          git clone --depth 1 https://github.com/google/copybara.git
+          git clone https://github.com/google/copybara.git
           cd copybara
           git checkout v20250818
           bazel build //java/com/google/copybara
