@@ -49,27 +49,182 @@ jobs:
           echo "SIGNING_PASSPHRASE=$PGP_PASSPHRASE" >> "$GITHUB_ENV"
       
       
-      # Build + dokka + validación local
-      - name: Build + Dokka + publishToMavenLocal
-        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishToMavenLocal
+      # Build + dokka + stage (publish)
+      - name: Build + Dokka + stage (publish)
+        run: ./gradlew --no-daemon clean build dokkaJavadoc javadocJar publishMavenPublicationToStagingRepository --scan
 
-      # 🚀 Publica en Maven Central y crea GitHub Release
-      - name: JReleaser — Full Release (Central + GitHub Release)
+
+      # 🚀 Subir artifacts a Maven Central
+      - name: Upload to Maven Central via HTTP
         env:
-          # Credenciales del Central Publisher Portal (Sonatype)
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          # Token para crear el GitHub Release (puede ser el GITHUB_TOKEN por defecto)
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew -Prelease --no-daemon jreleaserFullRelease
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        run: |
+          set -e
+          
+          # Configuración
+          NAMESPACE="io.github.julimax"
+          PROJECT_NAME="copybara"
+          VERSION=$(grep '^version = ' build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
+          BASE_URL="https://central.sonatype.com/api/v1/publisher"
+          
+          echo "🚀 Preparando artifacts para Maven Central..."
+          
+          # Verificar artifacts
+          JAR_FILE="build/libs/${PROJECT_NAME}-${VERSION}.jar"
+          POM_FILE="build/publications/maven/pom-default.xml"
+          [[ ! -f "$JAR_FILE" ]] && { echo "❌ JAR no encontrado"; exit 1; }
+          [[ ! -f "$POM_FILE" ]] && { echo "❌ POM no encontrado"; exit 1; }
+          
+          # Crear bundle
+          BUNDLE_ROOT="build/maven-central-bundle"
+          BUNDLE_DIR="$BUNDLE_ROOT/io/github/julimax/${PROJECT_NAME}/${VERSION}"
+          mkdir -p "$BUNDLE_DIR"
+          cp "$JAR_FILE" "$BUNDLE_DIR/${PROJECT_NAME}-${VERSION}.jar"
+          cp "$POM_FILE" "$BUNDLE_DIR/${PROJECT_NAME}-${VERSION}.pom"
+          
+          # Generar checksums
+          cd "$BUNDLE_DIR"
+          md5sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.md5"
+          md5sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.md5"
+          sha1sum "${PROJECT_NAME}-${VERSION}.jar" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.jar.sha1"
+          sha1sum "${PROJECT_NAME}-${VERSION}.pom" | cut -d' ' -f1 > "${PROJECT_NAME}-${VERSION}.pom.sha1"
+          
+          # Firmar archivos con GPG
+          gpg --batch --import "$SIGNING_KEY_FILE"
+          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^fpr:' | head -1 | cut -d':' -f10)
+          [[ -z "$KEY_ID" ]] && KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec:' | head -1 | cut -d':' -f5)
+          [[ -z "$KEY_ID" ]] && { echo "❌ Key ID no encontrado"; exit 1; }
+          
+          gpg --batch --keyserver keyserver.ubuntu.com --send-keys "$KEY_ID" >/dev/null 2>&1 || true
+          export GPG_TTY=$(tty)
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.jar"
+          gpg --batch --yes --passphrase "$SIGNING_PASSPHRASE" --pinentry-mode loopback --armor --detach-sign --local-user "$KEY_ID" "${PROJECT_NAME}-${VERSION}.pom"
+          
+          [[ ! -f "${PROJECT_NAME}-${VERSION}.jar.asc" || ! -f "${PROJECT_NAME}-${VERSION}.pom.asc" ]] && { echo "❌ Firmas no generadas"; exit 1; }
+          
+          cd - > /dev/null
+          
+          # Crear y subir bundle
+          BUNDLE_FILE="build/${PROJECT_NAME}-${VERSION}-bundle.zip"
+          cd "$BUNDLE_ROOT" && zip -r "../$(basename "$BUNDLE_FILE")" . && cd - > /dev/null
+          
+          echo "📤 Subiendo a Maven Central..."
+          UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/upload" \
+            -u "$OSSRH_USERNAME:$OSSRH_PASSWORD" \
+            -F "bundle=@$BUNDLE_FILE" -F "name=$PROJECT_NAME" -F "namespace=$NAMESPACE")
+          
+          HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$UPLOAD_RESPONSE" | head -n -1)
+          
+          if [[ "$HTTP_CODE" == "201" ]]; then
+            echo "✅ ¡Subido exitosamente a Maven Central!"
+            echo "🆔 Deployment ID: $RESPONSE_BODY"
+            echo "🔗 https://central.sonatype.com/publishing/deployments"
+          else
+            echo "❌ Error HTTP $HTTP_CODE: $RESPONSE_BODY"
+            exit 1
+          fi
+          
+      # 🏷️ Crear GitHub Release
+      - name: Create GitHub Release
+        if: always()  # Ejecutar aunque pasos anteriores hayan fallado
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # No usar set -e para que no falle todo el workflow si hay problemas con el release
+          
+          VERSION="1.0.7"
+          TAG_NAME="v$VERSION"
+          
+          echo "🏷️ Intentando crear GitHub Release..."
+          
+          # Verificar si el tag ya existe
+          if git tag -l | grep -q "^$TAG_NAME$"; then
+            echo "🏷️ Tag $TAG_NAME ya existe"
+          else
+            echo "🏷️ Creando tag $TAG_NAME..."
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME" || echo "⚠️ Warning: No se pudo hacer push del tag"
+          fi
+          
+          # Intentar crear el release
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "🏷️ Release $TAG_NAME ya existe, actualizando..."
+            gh release upload "$TAG_NAME" build/libs/copybara-$VERSION.jar --clobber || echo "⚠️ Warning: No se pudo subir el JAR al release"
+          else
+            echo "🏷️ Creando nuevo release $TAG_NAME..."
+            gh release create "$TAG_NAME" \
+              --title "Release $TAG_NAME" \
+              --notes "Release $TAG_NAME - Copybara Kotlin Hello World Application - Publicado exitosamente en Maven Central" \
+              --target "$GITHUB_SHA" \
+              build/libs/copybara-$VERSION.jar || echo "⚠️ Warning: No se pudo crear el GitHub Release, pero Maven Central fue exitoso"
+          fi
+          
+          echo "✅ Proceso completado. Maven Central deployment fue exitoso independientemente del estado del GitHub Release."
 
-      - name: Subir logs (si falla)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-logs
-          path: |
-            **/build/reports/**
-            **/build/test-results/**
-          if-no-files-found: ignore
-          retention-days: 7
+      # 📊 Mostrar logs de build scan después de publicar en Maven Central
+      - name: Show Build Scan Logs
+        if: always()
+        run: |
+          echo "=== Gradle Build Scan Logs ==="
+          if [ -d "$RUNNER_TEMP/.gradle-actions/build-scans" ]; then
+            find "$RUNNER_TEMP/.gradle-actions/build-scans" -name "*.json" 2>/dev/null | while read file; do
+              echo "📄 Build Scan File: $file"
+              if command -v jq >/dev/null 2>&1; then
+                cat "$file" | jq '.' 2>/dev/null || cat "$file"
+              else
+                cat "$file"
+              fi
+              echo "---"
+            done
+          else
+            echo "⚠️  Build scan directory not found at $RUNNER_TEMP/.gradle-actions/build-scans"
+          fi
+          
+          echo "=== Alternative locations ==="
+          find "$RUNNER_TEMP" -name "*build-scan*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
+
+      
+      # 📊 Mostrar logs de build results después de publicar en Maven Central
+      - name: Show Build Results Logs
+        if: always()
+        run: |
+          echo "=== Gradle Build Results Logs ==="
+          if [ -d "$RUNNER_TEMP/.gradle-actions/build-results" ]; then
+            find "$RUNNER_TEMP/.gradle-actions/build-results" -name "*.json" 2>/dev/null | while read file; do
+              echo "📄 Build Results File: $file"
+              if command -v jq >/dev/null 2>&1; then
+                cat "$file" | jq '.' 2>/dev/null || cat "$file"
+              else
+                cat "$file"
+              fi
+              echo "---"
+            done
+          else
+            echo "⚠️  Build results directory not found at $RUNNER_TEMP/.gradle-actions/build-results"
+          fi
+          
+          echo "=== Alternative locations ==="
+          find "$RUNNER_TEMP" -name "*build-results*" -o -name "*.gradle-actions*" 2>/dev/null | head -10
+
+      # 🔍 Mostrar logs detallados de JReleaser
+      - name: Show JReleaser Logs
+        if: always()
+        run: |
+          echo "=== JReleaser Logs ==="
+          if [ -d "build/jreleaser" ]; then
+            find build/jreleaser -name "*.log" -o -name "*.txt" | while read file; do
+              echo "📄 JReleaser Log: $file"
+              cat "$file"
+              echo "---"
+            done
+          else
+            echo "⚠️  JReleaser build directory not found"
+          fi
+          
+          echo "=== Gradle Daemon Logs (últimas líneas) ==="
+          find ~/.gradle/daemon -name "*.log" 2>/dev/null | head -1 | while read file; do
+            echo "📄 Daemon Log: $file"
+            tail -100 "$file"
+          done

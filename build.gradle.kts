@@ -3,12 +3,11 @@ plugins {
     `maven-publish`
     signing
     id("org.jetbrains.dokka") version "2.0.0"        // Docs para Kotlin
-    id("org.jreleaser") version "1.19.0"             // Publicación al Central Portal
     application
 }
 
 group = "io.github.julimax"
-version = "1.0.3"
+version = "1.0.7"
 description = "Copybara Kotlin Hello World Application"
 
 repositories { mavenCentral() }
@@ -37,6 +36,24 @@ tasks.register<org.gradle.jvm.tasks.Jar>("javadocJar") {
 
 // --- Publicación (POM completo + artifacts) ---
 publishing {
+    repositories {
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging-deploy").get())
+        }
+        // Maven Central (Sonatype OSSRH) - alternativa directa a JReleaser
+        maven {
+            name = "sonatype"
+            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+            credentials {
+                username = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+                password = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+    
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
@@ -44,21 +61,22 @@ publishing {
             // sourcesJar ya viene de 'java.withSourcesJar()'
 
             pom {
-                name.set("Copybara Kotlin App")
+                name.set("Copybara Kotlin Hello World")
                 description.set("A basic Kotlin Hello World application for Copybara project")
-                url.set("https://github.com/julimax/copybara1") // <-- alinea con tu repo real
-
+                url.set("https://github.com/julimax/copybara1")
+                
                 licenses {
                     license {
-                        name.set("Apache-2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                     }
                 }
+                
                 developers {
                     developer {
                         id.set("julimax")
                         name.set("Juli Gonzalez")
-                        email.set("you@example.com")
+                        email.set("julimax951@gmail.com")
                     }
                 }
                 scm {
@@ -76,33 +94,27 @@ signing {
     val keyFile = System.getenv("SIGNING_KEY_FILE")
     val pass = System.getenv("SIGNING_PASSPHRASE")
 
-    if (!keyFile.isNullOrBlank() && !pass.isNullOrBlank()) {
+    if (!keyFile.isNullOrBlank()) {
         val key = file(keyFile).readText(Charsets.UTF_8)
         useInMemoryPgpKeys(key, pass)
         sign(publishing.publications)
     } else {
-        println("Warning: Signing keys not configured. Artifacts will not be signed.")
+        logger.lifecycle("Signing disabled (no SIGNING_KEY_FILE).")
     }
 }
 
-
-
-// --- JReleaser: sube al Central Publisher Portal ---
-// Gradle publica primero a un staging local; JReleaser lo empuja al Portal.
+// --- Tareas personalizadas para deployment ---
 tasks.register("publishStaging") {
-    dependsOn("publishAllPublicationsToMavenLocal") // opcional si quieres validar local
+    dependsOn("publishMavenPublicationToStagingRepository")
+    description = "Publica los artefactos al repositorio de staging local"
+    group = "publishing"
 }
 
-jreleaser {
-    signing {
-        active.set(org.jreleaser.model.Active.NEVER)
-    }
-    deploy {
-        maven {
-            mavenCentral {
-                active.set(org.jreleaser.model.Active.ALWAYS)
-                // JReleaser detecta las publicaciones de Gradle y las sube al Portal
-            }
-        }
-    }
+tasks.register("publishToMavenCentral") {
+    dependsOn("publishMavenPublicationToSonatypeRepository")
+    description = "Publica los artefactos directamente a Maven Central (Sonatype OSSRH)"
+    group = "publishing"
 }
+
+// --- Maven Central deployment via direct HTTP upload ---
+// Using Sonatype Central Publisher API directly instead of JReleaser
