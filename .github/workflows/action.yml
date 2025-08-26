@@ -26,11 +26,11 @@ jobs:
           path: ~/.cache/bazel
           key: bazel
 
-      - name: Download Copybara release
+      - name: Clone Copybara versión v20250818
         run: |
-          curl -L https://github.com/google/copybara/archive/refs/tags/release-20250818.tar.gz -o copybara.tar.gz
-          tar -xzf copybara.tar.gz
-          cd copybara-release-20250818
+          git clone --depth 1 https://github.com/google/copybara.git
+          cd copybara
+          git checkout v20250818
           bazel build //java/com/google/copybara
 
       - name: Set Git identity
