@@ -1,0 +1,115 @@
+version: 2.1
+
+parameters:
+  copybara_tag:
+    type: string
+    default: "v20250818"  # Cambiá acá si querés otro tag (o usá master)
+
+jobs:
+  sync:
+    docker:
+      - image: cimg/openjdk:11.0   # Java 11
+    environment:
+      COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
+    steps:
+      - checkout  # tu repo, debe contener copy.bara.sky en la raíz
+
+      - run:
+          name: Instalar herramientas básicas
+          command: |
+            sudo apt-get update -y
+            sudo apt-get install -y curl git openssh-client
+
+      - run:
+          name: Instalar Bazelisk
+          command: |
+            curl -L https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -o bazelisk
+            chmod +x bazelisk
+            sudo mv bazelisk /usr/local/bin/bazel
+            bazel --version
+
+      # ---- CACHE: código fuente de Copybara (clonado) ----
+      - restore_cache:
+          keys:
+            - v1-copybara-src-{{ .Environment.COPYBARA_TAG }}
+      - run:
+          name: Clonar Copybara (si no está en caché)
+          command: |
+            if [ ! -d copybara ]; then
+              git clone https://github.com/google/copybara.git
+            fi
+            cd copybara
+            git fetch --tags --quiet || true
+            git checkout "$COPYBARA_TAG" 2>/dev/null || git checkout master
+      - save_cache:
+          key: v1-copybara-src-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - copybara
+
+      # ---- CACHE: Bazel (solo repos externos y opcional disk cache) ----
+      - run:
+          name: Preparar claves de caché Bazel
+          command: |
+            mkdir -p ~/.bazel_repo_cache ~/.bazel_disk_cache .cache-keys
+            if [ -f copybara/.bazelversion ]; then
+              cp copybara/.bazelversion .cache-keys/bazelversion.txt
+            else
+              echo "no-bazelversion" > .cache-keys/bazelversion.txt
+            fi
+      - restore_cache:
+          keys:
+            - v3-bazel-repo-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
+            - v3-bazel-repo-
+      - restore_cache:
+          keys:
+            - v1-bazel-disk-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
+            - v1-bazel-disk-
+
+      - run:
+          name: Compilar Copybara
+          command: |
+            cd copybara
+            bazelisk shutdown || true
+            rm -rf ~/.cache/bazel/_bazel_${USER}/install || true
+            bazel build \
+              --repository_cache=$HOME/.bazel_repo_cache \
+              --disk_cache=$HOME/.bazel_disk_cache \
+              //java/com/google/copybara
+
+      - save_cache:
+          key: v3-bazel-repo-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - ~/.bazel_repo_cache
+      - save_cache:
+          key: v1-bazel-disk-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - ~/.bazel_disk_cache
+
+      - run:
+          name: Configurar identidad de Git
+          command: |
+            git config --global user.name "Julimax"
+            git config --global user.email "julimax951@gmail.com"
+
+      - run:
+          name: Configurar SSH (desde base64)
+          command: |
+            set -euo pipefail
+            mkdir -p ~/.ssh
+            echo "$DEPLOY_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+            sed -i 's/\r$//' ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/id_ed25519
+
+      - run:
+          name: Ejecutar Copybara
+          command: |
+            cd copybara
+            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+
+workflows:
+  sync:
+    jobs:
+      - sync
