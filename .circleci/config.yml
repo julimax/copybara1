@@ -23,12 +23,6 @@ jobs:
             sudo mv bazelisk /usr/local/bin/bazel
             bazel --version
 
-      # Cache de Bazel (opcional pero recomendable)
-      - restore_cache:
-          keys:
-            - v1-bazel-cache-{{ .Environment.COPYBARA_TAG }}
-            - v1-bazel-cache-
-
       - run:
           name: Clonar y compilar Copybara
           command: |
