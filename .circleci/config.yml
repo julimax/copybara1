@@ -92,10 +92,12 @@ jobs:
             git config --global user.email "julimax951@gmail.com"
 
       - run:
-          name: Configurar SSH (usa DEPLOY_KEY desde env vars)
+          name: Configurar SSH (desde base64)
           command: |
+            set -euo pipefail
             mkdir -p ~/.ssh
-            echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+            echo "$DEPLOY_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+            sed -i 's/\r$//' ~/.ssh/id_ed25519
             chmod 600 ~/.ssh/id_ed25519
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             eval "$(ssh-agent -s)"
