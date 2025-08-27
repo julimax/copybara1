@@ -1,31 +1,77 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/reference/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#jobs-overview & https://circleci.com/docs/reference/configuration-reference/#jobs
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/guides/execution-managed/executor-intro/ & https://circleci.com/docs/reference/configuration-reference/#executor-job
+  sync:
     docker:
-      # Specify the version you desire here
-      # See: https://circleci.com/developer/images/image/cimg/base
-      - image: cimg/base:current
-
-    # Add steps to the job
-    # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#steps-overview & https://circleci.com/docs/reference/configuration-reference/#steps
+      - image: cimg/openjdk:11.0  # Java 11 (JDK)
+    environment:
+      COPYBARA_TAG: v20250818      # <-- cambialo si el tag no existe
     steps:
-      # Checkout the code as the first step.
-      - checkout
-      - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+      - checkout  # trae tu repo con copy.bara.sky en la raíz
 
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
+      - run:
+          name: Instalar herramientas básicas
+          command: |
+            sudo apt-get update -y
+            sudo apt-get install -y curl git openssh-client
+
+      - run:
+          name: Instalar Bazelisk
+          command: |
+            curl -L https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -o bazelisk
+            chmod +x bazelisk
+            sudo mv bazelisk /usr/local/bin/bazel
+            bazel --version
+
+      # Cache de Bazel (opcional pero recomendable)
+      - restore_cache:
+          keys:
+            - v1-bazel-cache-{{ .Environment.COPYBARA_TAG }}
+            - v1-bazel-cache-
+
+      - run:
+          name: Clonar y compilar Copybara
+          command: |
+            git clone https://github.com/google/copybara.git
+            cd copybara
+            # checkout del tag (si no existe, cambiá COPYBARA_TAG o comentá esta línea)
+            git checkout "${COPYBARA_TAG}"
+            bazel build //java/com/google/copybara
+
+      - save_cache:
+          key: v1-bazel-cache-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - ~/.cache/bazel
+
+      - run:
+          name: Configurar identidad de Git
+          command: |
+            git config --global user.name "Julimax"
+            git config --global user.email "julimax951@gmail.com"
+
+      # Opción A: usar variable de entorno DEPLOY_KEY (agregarla en Project Settings → Environment Variables)
+      - run:
+          name: Configurar SSH
+          command: |
+            mkdir -p ~/.ssh
+            echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/id_ed25519
+
+      # Opción B (alternativa): si agregás la llave privada en CircleCI (SSH Keys) podés usar add_ssh_keys:
+      # - add_ssh_keys:
+      #     fingerprints:
+      #       - "aa:bb:cc:dd:..."  # reemplazar por el fingerprint de tu llave
+
+      - run:
+          name: Ejecutar Copybara
+          command: |
+            cd copybara
+            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+
 workflows:
-  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  sync:
     jobs:
-      - say-hello
+      - sync
