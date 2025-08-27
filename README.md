@@ -1,3 +1,2 @@
-# copybara1 testing action! 
-
+# copybara1
 https://central.sonatype.org/publish/requirements/
