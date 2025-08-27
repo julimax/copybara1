@@ -3,11 +3,11 @@ version: 2.1
 jobs:
   sync:
     docker:
-      - image: cimg/openjdk:11.0  # Java 11 (JDK)
+      - image: cimg/openjdk:11.0
     environment:
-      COPYBARA_TAG: v20250818      # <-- cambialo si el tag no existe
+      COPYBARA_TAG: v20250818
     steps:
-      - checkout  # trae tu repo con copy.bara.sky en la raíz
+      - checkout
 
       - run:
           name: Instalar herramientas básicas
@@ -23,19 +23,58 @@ jobs:
             sudo mv bazelisk /usr/local/bin/bazel
             bazel --version
 
+      # ---- CACHE: código fuente de Copybara (clonado) ----
+      - restore_cache:
+          keys:
+            - v1-copybara-src-{{ .Environment.COPYBARA_TAG }}
       - run:
-          name: Clonar y compilar Copybara
+          name: Clonar Copybara (si no está en caché)
           command: |
-            git clone https://github.com/google/copybara.git
+            if [ ! -d copybara ]; then
+              git clone https://github.com/google/copybara.git
+              cd copybara
+              git checkout "${COPYBARA_TAG}" || git checkout master
+            else
+              echo "Usando Copybara desde caché"
+              cd copybara
+              # Asegura que estamos en el tag correcto; si falla, usamos master
+              git checkout "${COPYBARA_TAG}" || git checkout master
+            fi
+      - save_cache:
+          key: v1-copybara-src-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - copybara
+
+      # ---- CACHE: Bazel (solo repos externos y opcional disk cache) ----
+      - run: mkdir -p ~/.bazel_repo_cache ~/.bazel_disk_cache
+      - restore_cache:
+          keys:
+            - v3-bazel-repo-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+            - v3-bazel-repo-
+      - restore_cache:
+          keys:
+            - v1-bazel-disk-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+            - v1-bazel-disk-
+
+      - run:
+          name: Compilar Copybara
+          command: |
             cd copybara
-            # checkout del tag (si no existe, cambiá COPYBARA_TAG o comentá esta línea)
-            git checkout "${COPYBARA_TAG}"
-            bazel build //java/com/google/copybara
+            bazelisk shutdown || true
+            rm -rf ~/.cache/bazel/_bazel_${USER}/install || true
+            bazel build \
+              --repository_cache=$HOME/.bazel_repo_cache \
+              --disk_cache=$HOME/.bazel_disk_cache \
+              //java/com/google/copybara
 
       - save_cache:
-          key: v1-bazel-cache-{{ .Environment.COPYBARA_TAG }}
+          key: v3-bazel-repo-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
           paths:
-            - ~/.cache/bazel
+            - ~/.bazel_repo_cache
+      - save_cache:
+          key: v1-bazel-disk-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+          paths:
+            - ~/.bazel_disk_cache
 
       - run:
           name: Configurar identidad de Git
@@ -43,7 +82,6 @@ jobs:
             git config --global user.name "Julimax"
             git config --global user.email "julimax951@gmail.com"
 
-      # Opción A: usar variable de entorno DEPLOY_KEY (agregarla en Project Settings → Environment Variables)
       - run:
           name: Configurar SSH
           command: |
@@ -53,11 +91,6 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/id_ed25519
-
-      # Opción B (alternativa): si agregás la llave privada en CircleCI (SSH Keys) podés usar add_ssh_keys:
-      # - add_ssh_keys:
-      #     fingerprints:
-      #       - "aa:bb:cc:dd:..."  # reemplazar por el fingerprint de tu llave
 
       - run:
           name: Ejecutar Copybara
