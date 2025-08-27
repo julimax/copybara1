@@ -1,13 +1,18 @@
 version: 2.1
 
+parameters:
+  copybara_tag:
+    type: string
+    default: "v20250818"  # Cambiá acá si querés otro tag (o usá master)
+
 jobs:
   sync:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:11.0   # Java 11
     environment:
-      COPYBARA_TAG: v20250818
+      COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
-      - checkout
+      - checkout  # tu repo, debe contener copy.bara.sky en la raíz
 
       - run:
           name: Instalar herramientas básicas
@@ -32,28 +37,32 @@ jobs:
           command: |
             if [ ! -d copybara ]; then
               git clone https://github.com/google/copybara.git
-              cd copybara
-              git checkout "${COPYBARA_TAG}" || git checkout master
-            else
-              echo "Usando Copybara desde caché"
-              cd copybara
-              # Asegura que estamos en el tag correcto; si falla, usamos master
-              git checkout "${COPYBARA_TAG}" || git checkout master
             fi
+            cd copybara
+            git fetch --tags --quiet || true
+            git checkout "$COPYBARA_TAG" 2>/dev/null || git checkout master
       - save_cache:
           key: v1-copybara-src-{{ .Environment.COPYBARA_TAG }}
           paths:
             - copybara
 
       # ---- CACHE: Bazel (solo repos externos y opcional disk cache) ----
-      - run: mkdir -p ~/.bazel_repo_cache ~/.bazel_disk_cache
+      - run:
+          name: Preparar claves de caché Bazel
+          command: |
+            mkdir -p ~/.bazel_repo_cache ~/.bazel_disk_cache .cache-keys
+            if [ -f copybara/.bazelversion ]; then
+              cp copybara/.bazelversion .cache-keys/bazelversion.txt
+            else
+              echo "no-bazelversion" > .cache-keys/bazelversion.txt
+            fi
       - restore_cache:
           keys:
-            - v3-bazel-repo-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+            - v3-bazel-repo-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
             - v3-bazel-repo-
       - restore_cache:
           keys:
-            - v1-bazel-disk-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+            - v1-bazel-disk-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
             - v1-bazel-disk-
 
       - run:
@@ -68,11 +77,11 @@ jobs:
               //java/com/google/copybara
 
       - save_cache:
-          key: v3-bazel-repo-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+          key: v3-bazel-repo-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
           paths:
             - ~/.bazel_repo_cache
       - save_cache:
-          key: v1-bazel-disk-{{ checksum "copybara/.bazelversion" }}-{{ .Environment.COPYBARA_TAG }}
+          key: v1-bazel-disk-{{ checksum ".cache-keys/bazelversion.txt" }}-{{ .Environment.COPYBARA_TAG }}
           paths:
             - ~/.bazel_disk_cache
 
@@ -83,7 +92,7 @@ jobs:
             git config --global user.email "julimax951@gmail.com"
 
       - run:
-          name: Configurar SSH
+          name: Configurar SSH (usa DEPLOY_KEY desde env vars)
           command: |
             mkdir -p ~/.ssh
             echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
