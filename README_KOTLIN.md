@@ -4,7 +4,7 @@ Una aplicación básica de "Hola Mundo" en Kotlin dentro del proyecto Copybara.
 
 ## Archivos
 
-- `Main.kt` - Código principal de la aplicación Kotlin
+- `src/main/kotlin/Main.kt` - Código principal de la aplicación Kotlin
 - `build.gradle.kts` - Script de construcción con Gradle
 - `README_KOTLIN.md` - Este archivo con instrucciones
 

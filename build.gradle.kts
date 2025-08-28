@@ -18,6 +18,16 @@ dependencies {
 
 application { mainClass.set("MainKt") }
 
+// Configurar el JAR para que sea ejecutable
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "MainKt"
+    }
+    // Crear un Fat JAR que incluya todas las dependencias
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "11"
 }
