@@ -21,7 +21,7 @@ jobs:
           name: Instalar herramientas básicas
           command: |
             sudo apt-get update -y
-            sudo apt-get install -y curl git openssh-client
+            sudo apt-get install -y curl git openssh-client jq
 
       - run:
           name: Instalar Bazelisk
@@ -106,15 +106,58 @@ jobs:
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/id_ed25519
 
+      # ⬇️ Ejecutar Copybara capturando error y armando plantilla para Slack si falla
       - run:
-          name: Ejecutar Copybara
+          name: Ejecutar Copybara (con captura de error)
           command: |
-            cd copybara
-            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+            set -o pipefail
+            run_copybara() {
+              cd copybara
+              ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force \
+                2>&1 | tee /tmp/copybara.log
+            }
 
+            if ! run_copybara; then
+              # Limitar tamaño del snippet para Slack (~3000 chars por bloque)
+              tail -n 200 /tmp/copybara.log | tail -c 2800 > /tmp/copybara.tail
+
+              # Construir mensaje Block Kit con jq y variables de CircleCI
+              jq -n \
+                --arg job    "$CIRCLE_JOB" \
+                --arg repo   "$CIRCLE_PROJECT_REPONAME" \
+                --arg branch "$CIRCLE_BRANCH" \
+                --arg sha    "$CIRCLE_SHA1" \
+                --arg url    "$CIRCLE_BUILD_URL" \
+                --rawfile tl /tmp/copybara.tail \
+                '{
+                   blocks: [
+                     { type:"section",
+                       text:{ type:"mrkdwn",
+                         text: ("*❌ Falló el job* `"+$job+"` en `"+$repo+"` (`"+$branch+"` @ `"+($sha|.[0:7])+"`)\n<"+$url+"|Ver build en CircleCI>")
+                       }
+                     },
+                     { type:"section",
+                       text:{ type:"mrkdwn",
+                         text: ("```"+$tl+"```")
+                       }
+                     }
+                   ]
+                 }' > /tmp/slack_template.json
+
+              # Exportar plantilla para el orb (vía BASH_ENV → template env var)
+              echo "export MY_TEMPLATE=$(jq -c . /tmp/slack_template.json)" >> "$BASH_ENV"
+              exit 1
+            fi
+
+      # ✅ Notificación de éxito
       - slack/notify:
-          event: always
+          event: pass
           template: basic_success_1
+
+      # 🚨 Notificación de error usando la plantilla capturada
+      - slack/notify:
+          event: fail
+          template: MY_TEMPLATE
 
 workflows:
   sync:
