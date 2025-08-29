@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@4.12.5
+
 parameters:
   copybara_tag:
     type: string
@@ -108,6 +111,10 @@ jobs:
           command: |
             cd copybara
             ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+
+      - slack/notify:
+          event: always
+          template: basic_success_1
 
 workflows:
   sync:
