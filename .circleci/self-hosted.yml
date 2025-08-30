@@ -7,6 +7,6 @@ workflows:
 jobs:
   runner:
     machine: true
-    resource_class: resource_class: org-test-copybara/test
+    resource_class: org-test-copybara/test
     steps:
       - run: echo "Hi I'm on Runners!"
