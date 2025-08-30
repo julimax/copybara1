@@ -4,9 +4,9 @@ jobs:
     docker:
       - image: cimg/base:current
     resource_class: org-test-copybara/test
-    steps: 
+    steps:
       - run: echo "Hi I'm on a Container Runner!"
-workflows: 
+workflows:
   build-workflow:
     jobs:
       - build
