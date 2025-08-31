@@ -11,8 +11,10 @@ jobs:
     steps:
       - run: echo "Hi I'm on Runners!"
       - run:
-          name: Ping a GitHub API
+          name: Ping a GitHub API con validación
           command: |
-            curl -H "Authorization: token ${GH_PAT}" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 https://api.github.com/repos/julimax/copybara2
+            curl -fsS \
+              -H "Authorization: token ${GH_PAT}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/julimax/copybara2
+            echo "✅ Acceso correcto al repo privado"
