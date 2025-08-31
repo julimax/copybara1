@@ -10,3 +10,9 @@ jobs:
     resource_class: org-test-copybara/test
     steps:
       - run: echo "Hi I'm on Runners!"
+      - run:
+          name: Ping a GitHub API
+          command: |
+            curl -H "Authorization: token ${GH_PAT}" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/repos/julimax/copybara2
