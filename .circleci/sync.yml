@@ -105,12 +105,18 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/id_ed25519
+            
+      - run:
+          name: Validar configuración de Copybara
+          command: |
+            cd copybara
+            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky validate
 
       - run:
           name: Ejecutar Copybara
           command: |
             cd copybara
-            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+            ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest 
 
       - slack/notify:
           event: always
