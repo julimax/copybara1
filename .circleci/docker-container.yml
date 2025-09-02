@@ -50,6 +50,7 @@ jobs:
           name: Check GitHub Cloud (in-container)
           command: |
             docker run --rm \
+              --name "copybara-check-cloud-${CIRCLE_WORKFLOW_ID}" \
               -e GH_PAT -e COPYBARA_TAG \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
@@ -67,6 +68,7 @@ jobs:
           name: Check GitHub Enterprise (in-container)
           command: |
             docker run --rm \
+              --name "copybara-check-enterprise-${CIRCLE_WORKFLOW_ID}" \
               -e GH_PAT -e COPYBARA_TAG \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
@@ -120,6 +122,7 @@ jobs:
           name: Run Copybara (in-container)
           command: |
             docker run --rm \
+              --name "copybara-sync-${CIRCLE_WORKFLOW_ID}" \
               -e GH_PAT="${GH_PAT}" \
               -e DEPLOY_KEY_B64="${DEPLOY_KEY_B64}" \
               -v "$PWD":/workspace -w /workspace \

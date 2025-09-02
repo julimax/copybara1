@@ -35,4 +35,4 @@ sudo chmod 660 /var/run/docker.sock
 
 # Restart the runner to pick up new group membership:
 sudo systemctl restart circleci-runner
-# Or if using a different service name/method, restart accordingly
+# Or if using a different service name/method, restart accordingly 
