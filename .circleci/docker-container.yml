@@ -121,17 +121,11 @@ jobs:
           command: |
             docker run --rm \
               -e GH_PAT="${GH_PAT}" \
-              -e COPYBARA_TAG="${COPYBARA_TAG}" \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
                 set -euo pipefail
-                # Compilar Copybara en el contenedor (como sync.yml original que funciona)
-                git clone https://github.com/google/copybara.git
-                cd copybara
-                git checkout "$COPYBARA_TAG" 2>/dev/null || git checkout master
-                bazelisk build //java/com/google/copybara
-                # Ejecutar desde donde se compiló (como sync.yml original)
-                ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest
+                # Copybara ya está pre-compilado en la imagen (JAR deploy)
+                copybara .circleci/copybara/copy.bara.sky sync_to_dest
               '
 
 workflows:
