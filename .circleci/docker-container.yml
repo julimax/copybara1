@@ -122,8 +122,13 @@ jobs:
             docker run --rm \
               -e GH_PAT="${GH_PAT}" \
               -v "$PWD":/workspace -w /workspace \
+              -v ~/.ssh:/home/circleci/.ssh:ro \
+              -v ~/.gitconfig:/home/circleci/.gitconfig:ro \
               "$CONTAINER_IMAGE" bash -lc '
                 set -euo pipefail
+                # Configurar SSH y Git para GitHub
+                chmod 600 /home/circleci/.ssh/id_* 2>/dev/null || true
+                ssh-keyscan github.com >> /home/circleci/.ssh/known_hosts 2>/dev/null || true
                 # Copybara ya está pre-compilado en la imagen (JAR deploy)
                 copybara .circleci/copybara/copy.bara.sky sync_to_dest
               '
