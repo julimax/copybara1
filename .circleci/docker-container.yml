@@ -10,7 +10,7 @@ jobs:
     machine: true
     resource_class: org-test-copybara/test
     environment:
-      CONTAINER_IMAGE: "circleci-container:latest" # tu imagen ya presente en el runner
+      CONTAINER_IMAGE: "copybara-simple:latest" # imagen con Copybara pre-compilado
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
       - checkout
