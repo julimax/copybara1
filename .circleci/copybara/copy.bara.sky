@@ -1,0 +1,15 @@
+core.workflow(
+    name = "sync_to_dest",
+    mode = "ITERATIVE",
+    origin = git.github_origin(
+        url = "git@github.com:julimax/copybara1.git",
+        ref = "main",
+    ),
+    destination = git.destination(
+        url = "git@github.com:julimax/copybara2.git",
+        push = "refs/heads/sync",
+    ),
+    origin_files = glob(["README.md"]),
+    authoring = authoring.pass_thru("Julimax <julimax951@gmail.com>"),
+    transformations = [],
+)
