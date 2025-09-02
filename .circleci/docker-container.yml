@@ -1,10 +1,6 @@
 version: 2.1
 
 parameters:
-  gh_pat:
-    type: string
-  gh_pat_treehouse:
-    type: string
   copybara_tag:
     type: string
     default: "v20250818"
@@ -16,8 +12,8 @@ jobs:
     environment:
       CONTAINER_IMAGE: "circleci-container:latest" # tu imagen ya presente en el runner
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
-      GH_PAT: << pipeline.parameters.gh_pat >>
-      GH_PAT_TREEHOUSE: << pipeline.parameters.gh_pat_treehouse >>
+      GH_PAT: ${GH_PAT}
+      GH_PAT_TREEHOUSE: ${GH_PAT}
     steps:
       - checkout
       - run:
