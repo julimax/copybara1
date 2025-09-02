@@ -17,6 +17,15 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Setup Docker permissions
+          command: |
+            # Add current user to docker group and refresh permissions
+            sudo usermod -aG docker $USER
+            # Start Docker service if not running
+            sudo systemctl start docker || true
+            # Change socket permissions as fallback
+            sudo chmod 666 /var/run/docker.sock
+      - run:
           name: Check GitHub Cloud (in-container)
           command: |
             docker run --rm \
@@ -60,6 +69,15 @@ jobs:
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
       - checkout
+      - run:
+          name: Setup Docker permissions
+          command: |
+            # Add current user to docker group and refresh permissions
+            sudo usermod -aG docker $USER
+            # Start Docker service if not running
+            sudo systemctl start docker || true
+            # Change socket permissions as fallback
+            sudo chmod 666 /var/run/docker.sock
       - run:
           name: Run Copybara (in-container)
           command: |
