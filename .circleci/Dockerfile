@@ -53,9 +53,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH="/usr/local/bin:${PATH}"
 
-# Copia el binario de Copybara ya construido
+# Copia el binario de Copybara y sus runfiles
 COPY --from=builder /opt/copybara/bazel-bin/java/com/google/copybara/copybara /usr/local/bin/copybara
+COPY --from=builder /opt/copybara/bazel-bin/java/com/google/copybara/copybara.runfiles /usr/local/bin/copybara.runfiles
 RUN chmod +x /usr/local/bin/copybara
+
+# Configurar variables de entorno para runfiles
+ENV JAVA_RUNFILES=/usr/local/bin/copybara.runfiles
 
 # Usuario no root
 RUN useradd -ms /bin/bash circleci
