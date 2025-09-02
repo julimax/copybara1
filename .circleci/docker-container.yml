@@ -16,15 +16,9 @@ jobs:
       GH_PAT_TREEHOUSE: ${GH_PAT}
     steps:
       - checkout
-      - run:
-          name: Setup Docker permissions
-          command: |
-            # Add current user to docker group and refresh permissions
-            sudo usermod -aG docker $USER
-            # Start Docker service if not running
-            sudo systemctl start docker || true
-            # Change socket permissions as fallback
-            sudo chmod 666 /var/run/docker.sock
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
       - run:
           name: Check GitHub Cloud (in-container)
           command: |
@@ -69,15 +63,9 @@ jobs:
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
       - checkout
-      - run:
-          name: Setup Docker permissions
-          command: |
-            # Add current user to docker group and refresh permissions
-            sudo usermod -aG docker $USER
-            # Start Docker service if not running
-            sudo systemctl start docker || true
-            # Change socket permissions as fallback
-            sudo chmod 666 /var/run/docker.sock
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
       - run:
           name: Run Copybara (in-container)
           command: |
