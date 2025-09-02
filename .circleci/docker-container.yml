@@ -50,7 +50,7 @@ jobs:
           name: Check GitHub Cloud (in-container)
           command: |
             docker run --rm \
-              -e ${GH_PAT} -e COPYBARA_TAG \
+              -e GH_PAT -e COPYBARA_TAG \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
                 set -euo pipefail
@@ -67,7 +67,7 @@ jobs:
           name: Check GitHub Enterprise (in-container)
           command: |
             docker run --rm \
-              -e ${GH_PAT} -e COPYBARA_TAG \
+              -e GH_PAT -e COPYBARA_TAG \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
                 set -euo pipefail
