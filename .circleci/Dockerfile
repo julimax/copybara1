@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl git jq unzip zip \
     openjdk-11-jdk \
     bash coreutils tar gnupg \
+    build-essential gcc g++ make \
+    python3 python3-pip \
   && rm -rf /var/lib/apt/lists/*
 
 # Instala Bazelisk
@@ -18,10 +20,18 @@ RUN curl -fsSL https://github.com/bazelbuild/bazelisk/releases/latest/download/b
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH="/usr/local/bin:${PATH}"
 
-# Clona y “checkout” de Copybara
+# Crear usuario no root para la compilación
+RUN useradd -ms /bin/bash builduser
+
+# Clona y "checkout" de Copybara
 WORKDIR /opt
 RUN git clone https://github.com/google/copybara.git
+RUN chown -R builduser:builduser /opt/copybara
 WORKDIR /opt/copybara
+
+# Cambiar a usuario no root
+USER builduser
+
 # Intenta tag; si no existe, usa master
 RUN git fetch --tags --quiet || true \
  && (git checkout "${COPYBARA_TAG}" 2>/dev/null || git checkout origin/master)

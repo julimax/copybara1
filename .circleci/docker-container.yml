@@ -11,9 +11,10 @@ parameters:
 
 jobs:
   check-connection:
-    docker:
-      - image: circleci-tools:latest   # <- tu imagen; todos los comandos corren dentro
+    machine: true
+    resource_class: org-test-copybara/test
     environment:
+      CONTAINER_IMAGE: "circleci-container:latest" # tu imagen ya presente en el runner
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
       GH_PAT: << pipeline.parameters.gh_pat >>
       GH_PAT_TREEHOUSE: << pipeline.parameters.gh_pat_treehouse >>
@@ -22,39 +23,58 @@ jobs:
       - run:
           name: Check GitHub Cloud (in-container)
           command: |
-            URL="https://api.github.com/repos/airbnb/viaduct"
-            code=$(curl -sS -D /tmp/h -o /tmp/b -w "%{http_code}" \
-              -H "Authorization: Bearer ${GH_PAT}" \
-              -H "Accept: application/vnd.github+json" "$URL")
-            echo "== Headers =="; cat /tmp/h
-            echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
-            echo "HTTP $code"
-            test "${code:0:1}" = "2"
+            docker run --rm \
+              -e GH_PAT -e COPYBARA_TAG \
+              -v "$PWD":/workspace -w /workspace \
+              "$CONTAINER_IMAGE" bash -lc '
+                set -euo pipefail
+                URL="https://api.github.com/repos/julimax/copybara2"
+                code=$(curl -sS -D /tmp/h -o /tmp/b -w "%{http_code}" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "Accept: application/vnd.github+json" "$URL")
+                echo "== Headers =="; cat /tmp/h
+                echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
+                echo "HTTP $code"
+                test "${code:0:1}" = "2"
+              '
       - run:
           name: Check GitHub Enterprise (in-container)
           command: |
-            URL="https://git.musta.ch/api/v3/repos/airbnb/treehouse"
-            code=$(curl -sS --connect-timeout 5 --max-time 15 --retry 3 --retry-delay 2 --retry-all-errors \
-              -D /tmp/h -o /tmp/b -w "%{http_code}" \
-              -H "Authorization: Bearer ${GH_PAT_TREEHOUSE}" \
-              -H "Accept: application/vnd.github+json" "$URL")
-            echo "== Headers =="; cat /tmp/h
-            echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
-            echo "HTTP $code"
-            test "${code:0:1}" = "2"
+            docker run --rm \
+              -e GH_PAT-e COPYBARA_TAG \
+              -v "$PWD":/workspace -w /workspace \
+              "$CONTAINER_IMAGE" bash -lc '
+                set -euo pipefail
+                URL="https://api.github.com/repos/julimax/copybara2"
+                code=$(curl -sS --connect-timeout 5 --max-time 15 --retry 3 --retry-delay 2 --retry-all-errors \
+                  -D /tmp/h -o /tmp/b -w "%{http_code}" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "Accept: application/vnd.github+json" "$URL")
+                echo "== Headers =="; cat /tmp/h
+                echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
+                echo "HTTP $code"
+                test "${code:0:1}" = "2"
+              '
 
   sync:
-    docker:
-      - image: circleci-tools:latest   # <- mismo contenedor con Copybara instalado
+    machine: true
+    resource_class: org-test-copybara/test
     environment:
+      CONTAINER_IMAGE: "circleci-container:latest"
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
       - checkout
       - run:
           name: Run Copybara (in-container)
           command: |
-            # Primera vez agrega: --init-history
-            copybara .circleci/copybara/copy.bara.sky sync_to_dest
+            docker run --rm \
+              -e COPYBARA_TAG \
+              -v "$PWD":/workspace -w /workspace \
+              "$CONTAINER_IMAGE" bash -lc '
+                set -euo pipefail
+                # Primera vez agrega: --init-history si corresponde
+                copybara .circleci/copybara/copy.bara.sky sync_to_dest
+              '
 
 workflows:
   build-workflow:
