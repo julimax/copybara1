@@ -61,6 +61,14 @@ RUN chmod +x /usr/local/bin/copybara
 # Configurar variables de entorno para runfiles
 ENV JAVA_RUNFILES=/usr/local/bin/copybara.runfiles
 
+# Arreglar enlaces simbólicos rotos de Java en runfiles
+RUN find /usr/local/bin/copybara.runfiles -name "java" -type l -delete && \
+    find /usr/local/bin/copybara.runfiles -name "javac" -type l -delete && \
+    find /usr/local/bin/copybara.runfiles -name "jar" -type l -delete && \
+    ln -sf /usr/bin/java /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/java && \
+    ln -sf /usr/bin/javac /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/javac && \
+    ln -sf /usr/bin/jar /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/jar
+
 # Usuario no root
 RUN useradd -ms /bin/bash circleci
 USER circleci
