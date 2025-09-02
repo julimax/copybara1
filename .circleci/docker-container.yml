@@ -62,7 +62,7 @@ jobs:
                 echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
                 echo "HTTP $code"
                 test "${code:0:1}" = "2"
-              '
+              ' 
       - run:
           name: Check GitHub Enterprise (in-container)
           command: |
