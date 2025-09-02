@@ -13,6 +13,8 @@ jobs:
       CONTAINER_IMAGE: "copybara-simple:latest" # imagen con Copybara pre-compilado
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
+      - run: whoami
+      - run: id
       - checkout
       - run:
           name: Check env vars
