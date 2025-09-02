@@ -36,9 +36,9 @@ USER builduser
 RUN git fetch --tags --quiet || true \
  && (git checkout "${COPYBARA_TAG}" 2>/dev/null || git checkout origin/master)
 
-# Compila Copybara
+# Compila Copybara (deploy JAR)
 RUN bazelisk shutdown || true \
- && bazelisk build //java/com/google/copybara
+ && bazelisk build //java/com/google/copybara:copybara_deploy.jar
 
 # ==== final: imagen mínima con runtime y Copybara pre-compilado ====
 FROM ubuntu:24.04
@@ -53,13 +53,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH="/usr/local/bin:${PATH}"
 
-# Copia TODO el directorio de Copybara compilado (preserva estructura de Bazel)
-COPY --from=builder --chown=circleci:circleci /opt/copybara /opt/copybara
+# Copia el JAR deploy de Copybara
+COPY --from=builder /opt/copybara/bazel-bin/java/com/google/copybara/copybara_deploy.jar /usr/local/bin/copybara_deploy.jar
 
-# Crear script wrapper que ejecute desde el directorio compilado (como sync.yml)
+# Crear script wrapper simple para ejecutar el JAR
 RUN echo '#!/bin/bash' > /usr/local/bin/copybara && \
-    echo 'cd /opt/copybara' >> /usr/local/bin/copybara && \
-    echo 'exec ./bazel-bin/java/com/google/copybara/copybara "$@"' >> /usr/local/bin/copybara && \
+    echo 'exec java -jar /usr/local/bin/copybara_deploy.jar "$@"' >> /usr/local/bin/copybara && \
     chmod +x /usr/local/bin/copybara
 
 # Usuario no root
