@@ -120,11 +120,11 @@ jobs:
           name: Run Copybara (in-container)
           command: |
             docker run --rm \
-              -e COPYBARA_TAG \
+              -e GH_PAT="${GH_PAT}" \
               -v "$PWD":/workspace -w /workspace \
               "$CONTAINER_IMAGE" bash -lc '
                 set -euo pipefail
-                # Primera vez agrega: --init-history si corresponde
+                # Copybara ya está pre-compilado en la imagen
                 copybara .circleci/copybara/copy.bara.sky sync_to_dest
               '
 
@@ -135,4 +135,3 @@ workflows:
       - sync:
           requires:
             - check-connection
- 

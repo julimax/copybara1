@@ -40,34 +40,27 @@ RUN git fetch --tags --quiet || true \
 RUN bazelisk shutdown || true \
  && bazelisk build //java/com/google/copybara
 
-# ==== final: imagen mínima con runtime y binarios ====
+# ==== final: imagen mínima con runtime y Copybara pre-compilado ====
 FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl git jq \
-    openjdk-21-jre-headless \
+    openjdk-11-jre-headless \
     bash tini \
   && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH="/usr/local/bin:${PATH}"
 
-# Copia el binario de Copybara y sus runfiles
-COPY --from=builder /opt/copybara/bazel-bin/java/com/google/copybara/copybara /usr/local/bin/copybara
-COPY --from=builder /opt/copybara/bazel-bin/java/com/google/copybara/copybara.runfiles /usr/local/bin/copybara.runfiles
-RUN chmod +x /usr/local/bin/copybara
+# Copia TODO el directorio de Copybara compilado (preserva estructura de Bazel)
+COPY --from=builder --chown=circleci:circleci /opt/copybara /opt/copybara
 
-# Configurar variables de entorno para runfiles
-ENV JAVA_RUNFILES=/usr/local/bin/copybara.runfiles
-
-# Arreglar enlaces simbólicos rotos de Java en runfiles
-RUN find /usr/local/bin/copybara.runfiles -name "java" -type l -delete && \
-    find /usr/local/bin/copybara.runfiles -name "javac" -type l -delete && \
-    find /usr/local/bin/copybara.runfiles -name "jar" -type l -delete && \
-    ln -sf /usr/bin/java /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/java && \
-    ln -sf /usr/bin/javac /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/javac && \
-    ln -sf /usr/bin/jar /usr/local/bin/copybara.runfiles/rules_java++toolchains+remotejdk21_linux/bin/jar
+# Crear script wrapper que ejecute desde el directorio compilado (como sync.yml)
+RUN echo '#!/bin/bash' > /usr/local/bin/copybara && \
+    echo 'cd /opt/copybara' >> /usr/local/bin/copybara && \
+    echo 'exec ./bazel-bin/java/com/google/copybara/copybara "$@"' >> /usr/local/bin/copybara && \
+    chmod +x /usr/local/bin/copybara
 
 # Usuario no root
 RUN useradd -ms /bin/bash circleci
