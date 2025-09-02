@@ -1,0 +1,65 @@
+version: 2.1
+
+parameters:
+  gh_pat:
+    type: string
+  gh_pat_treehouse:
+    type: string
+  copybara_tag:
+    type: string
+    default: "v20250818"
+
+jobs:
+  check-connection:
+    docker:
+      - image: circleci-tools:latest   # <- tu imagen; todos los comandos corren dentro
+    environment:
+      COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
+      GH_PAT: << pipeline.parameters.gh_pat >>
+      GH_PAT_TREEHOUSE: << pipeline.parameters.gh_pat_treehouse >>
+    steps:
+      - checkout
+      - run:
+          name: Check GitHub Cloud (in-container)
+          command: |
+            URL="https://api.github.com/repos/airbnb/viaduct"
+            code=$(curl -sS -D /tmp/h -o /tmp/b -w "%{http_code}" \
+              -H "Authorization: Bearer ${GH_PAT}" \
+              -H "Accept: application/vnd.github+json" "$URL")
+            echo "== Headers =="; cat /tmp/h
+            echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
+            echo "HTTP $code"
+            test "${code:0:1}" = "2"
+      - run:
+          name: Check GitHub Enterprise (in-container)
+          command: |
+            URL="https://git.musta.ch/api/v3/repos/airbnb/treehouse"
+            code=$(curl -sS --connect-timeout 5 --max-time 15 --retry 3 --retry-delay 2 --retry-all-errors \
+              -D /tmp/h -o /tmp/b -w "%{http_code}" \
+              -H "Authorization: Bearer ${GH_PAT_TREEHOUSE}" \
+              -H "Accept: application/vnd.github+json" "$URL")
+            echo "== Headers =="; cat /tmp/h
+            echo "== Body =="; (jq . /tmp/b || cat /tmp/b)
+            echo "HTTP $code"
+            test "${code:0:1}" = "2"
+
+  sync:
+    docker:
+      - image: circleci-tools:latest   # <- mismo contenedor con Copybara instalado
+    environment:
+      COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
+    steps:
+      - checkout
+      - run:
+          name: Run Copybara (in-container)
+          command: |
+            # Primera vez agrega: --init-history
+            copybara .circleci/copybara/copy.bara.sky sync_to_dest
+
+workflows:
+  build-workflow:
+    jobs:
+      - check-connection
+      - sync:
+          requires:
+            - check-connection
