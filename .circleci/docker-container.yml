@@ -16,9 +16,32 @@ jobs:
       GH_PAT_TREEHOUSE: ${GH_PAT}
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.14
-          docker_layer_caching: true
+      - run:
+          name: Docker diagnostics and setup
+          command: |
+            echo "=== Docker Diagnostics ==="
+            echo "Current user: $(whoami)"
+            echo "User groups: $(groups)"
+            echo "Docker socket: $(ls -la /var/run/docker.sock 2>/dev/null || echo 'Not found')"
+            echo "Docker service status: $(systemctl is-active docker 2>/dev/null || echo 'Unknown')"
+            echo "Testing Docker access..."
+            if docker version >/dev/null 2>&1; then
+              echo "✅ Docker access successful"
+            else
+              echo "❌ Docker access failed"
+              echo "Attempting to fix permissions..."
+              # Try to add user to docker group (if not already)
+              if ! groups | grep -q docker; then
+                echo "User not in docker group. This needs to be fixed on the runner."
+              fi
+              # Check if we can modify socket permissions
+              if [ -w /var/run/docker.sock ]; then
+                echo "Socket is writable, continuing..."
+              else
+                echo "Socket is not writable. Checking if we can fix it..."
+                chmod 666 /var/run/docker.sock 2>/dev/null && echo "Fixed socket permissions" || echo "Cannot fix socket permissions"
+              fi
+            fi
       - run:
           name: Check GitHub Cloud (in-container)
           command: |
@@ -63,9 +86,32 @@ jobs:
       COPYBARA_TAG: << pipeline.parameters.copybara_tag >>
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.14
-          docker_layer_caching: true
+      - run:
+          name: Docker diagnostics and setup
+          command: |
+            echo "=== Docker Diagnostics ==="
+            echo "Current user: $(whoami)"
+            echo "User groups: $(groups)"
+            echo "Docker socket: $(ls -la /var/run/docker.sock 2>/dev/null || echo 'Not found')"
+            echo "Docker service status: $(systemctl is-active docker 2>/dev/null || echo 'Unknown')"
+            echo "Testing Docker access..."
+            if docker version >/dev/null 2>&1; then
+              echo "✅ Docker access successful"
+            else
+              echo "❌ Docker access failed"
+              echo "Attempting to fix permissions..."
+              # Try to add user to docker group (if not already)
+              if ! groups | grep -q docker; then
+                echo "User not in docker group. This needs to be fixed on the runner."
+              fi
+              # Check if we can modify socket permissions
+              if [ -w /var/run/docker.sock ]; then
+                echo "Socket is writable, continuing..."
+              else
+                echo "Socket is not writable. Checking if we can fix it..."
+                chmod 666 /var/run/docker.sock 2>/dev/null && echo "Fixed socket permissions" || echo "Cannot fix socket permissions"
+              fi
+            fi
       - run:
           name: Run Copybara (in-container)
           command: |
