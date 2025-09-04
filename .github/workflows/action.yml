@@ -35,8 +35,8 @@ jobs:
 
       - name: Set Git identity
         run: |
-          git config --global user.name "Julimax"
-          git config --global user.email "julimax951@gmail.com"
+          git config --global user.name "$USER"
+          git config --global user.email "$EMAIL"
 
       - name: Setup SSH
         run: |
@@ -50,4 +50,4 @@ jobs:
       - name: Run Copybara
         run: |
           cd copybara
-          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest 
