@@ -24,21 +24,47 @@ jobs:
           cd copybara
           git checkout v20250818
 
-      - name: Prepare Bazel cache dir
-        run: mkdir -p "$HOME/.cache/bazel"
+      # === Prepara directorios de cache ===
+      - name: Prepare caches
+        run: |
+          mkdir -p "$HOME/.cache/bazel-disk"
+          mkdir -p "$HOME/.cache/bazel-repo"
+          mkdir -p "$HOME/.cache/bazelisk"
 
-      - name: Mount Bazel cache
+      # === Cache Bazel DISK (resultados de build) ===
+      - name: Cache Bazel (disk cache)
         uses: actions/cache@v4
         with:
-          path: $HOME/.cache/bazel
-          key: bazel-${{ runner.os }}-${{ hashFiles('copybara/WORKSPACE','copybara/MODULE.bazel','copybara/**/*.bzl') }}
+          path: $HOME/.cache/bazel-disk
+          key: bazel-disk-${{ runner.os }}-copybara-v20250818
           restore-keys: |
-            bazel-${{ runner.os }}-
+            bazel-disk-${{ runner.os }}-
 
-      - name: Build Copybara
+      # === Cache Bazel REPOSITORY (descargas externas) ===
+      - name: Cache Bazel (repository cache)
+        uses: actions/cache@v4
+        with:
+          path: $HOME/.cache/bazel-repo
+          key: bazel-repo-${{ runner.os }}-copybara-v20250818
+          restore-keys: |
+            bazel-repo-${{ runner.os }}-
+
+      # === Cache BAZELISK (descarga de binarios de bazel) ===
+      - name: Cache Bazelisk
+        uses: actions/cache@v4
+        with:
+          path: $HOME/.cache/bazelisk
+          key: bazelisk-${{ runner.os }}-1.x
+          restore-keys: |
+            bazelisk-${{ runner.os }}-
+
+      - name: Build Copybara (usando caches)
         run: |
           cd copybara
-          bazel build //java/com/google/copybara
+          bazel build \
+            --disk_cache="$HOME/.cache/bazel-disk" \
+            --repository_cache="$HOME/.cache/bazel-repo" \
+            //java/com/google/copybara
 
       - name: Set Git identity
         run: |
