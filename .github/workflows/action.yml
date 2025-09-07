@@ -17,13 +17,21 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Setup Bazelisk
-        uses: bazelbuild/setup-bazelisk@v3
-
       # Crear dirs antes de restaurar (evita warnings)
       - name: Prepare Bazel caches
         run: |
           mkdir -p "$HOME/.cache/bazel-disk" "$HOME/.cache/bazel-repo"
+          
+      - name: Mount Bazel cache
+        if: false
+        uses: actions/cache@v4
+        with:
+          path: $HOME/.cache/bazel
+          key: bazel-${{ runner.os }}-${{ hashFiles('**/WORKSPACE', '**/MODULE.bazel', '**/*.bzl', 'copybara/**') }}
+          restore-keys: |
+            bazel-${{ runner.os }}-
+
+
 
       - name: Mount bazel cache (opcional)
         uses: actions/cache@v4
