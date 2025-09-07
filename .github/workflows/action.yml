@@ -21,7 +21,11 @@ jobs:
       - name: Prepare Bazel caches
         run: |
           mkdir -p "$HOME/.cache/bazel-disk" "$HOME/.cache/bazel-repo"
-          
+
+
+      - name: Setup Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3
+        
       - name: Mount Bazel cache
         if: false
         uses: actions/cache@v4
