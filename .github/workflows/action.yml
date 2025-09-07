@@ -1,4 +1,3 @@
-
 name: Sync with Copybara
 
 on:
@@ -18,22 +17,47 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Mount bazel cache (opcional)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/bazel
-          key: bazel
+      # (Opcional pero recomendado) Instalar Bazelisk para obtener la versión correcta de Bazel
+      - name: Setup Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3
 
       - name: Clone Copybara versión v20250818
         run: |
           git clone https://github.com/google/copybara.git
           cd copybara
           git checkout v20250818
-          bazel build //java/com/google/copybara
+
+      # ---- Cache de Bazel (repo + disk) y Bazelisk ----
+      - name: Prepare Bazel cache dirs
+        run: |
+          mkdir -p "$HOME/.cache/bazel-repo"
+          mkdir -p "$HOME/.cache/bazel-disk"
+          mkdir -p "$HOME/.cache/bazelisk"
+
+      - name: Restore Bazel caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazelisk
+            ~/.cache/bazel-repo
+            ~/.cache/bazel-disk
+          key: bazel-${{ runner.os }}-copybara-v20250818-${{ hashFiles('copybara/WORKSPACE*','copybara/MODULE.bazel','copybara/java/**','copybara/third_party/**','copybara/.bazelversion') }}
+          restore-keys: |
+            bazel-${{ runner.os }}-copybara-v20250818-
+            bazel-${{ runner.os }}-
+
+      - name: Build Copybara (usa caches)
+        working-directory: copybara
+        run: |
+          bazel build //java/com/google/copybara \
+            --repository_cache="$HOME/.cache/bazel-repo" \
+            --disk_cache="$HOME/.cache/bazel-disk"
+
       - name: Set Git identity
         run: |
           git config --global user.name "Julimax"
           git config --global user.email "julimax951@gmail.com"
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -42,7 +66,8 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_ed25519
+
       - name: Run Copybara
+        working-directory: copybara
         run: |
-          cd copybara
-          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --force
+          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest
