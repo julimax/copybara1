@@ -17,4 +17,4 @@ jobs:
         run: |
           echo "Ping cada 5 min ✅"
           echo "UTC: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "Buenos Aires: $(TZ=Am
+          echo "Buenos Aires: $(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M:%S %Z')"
