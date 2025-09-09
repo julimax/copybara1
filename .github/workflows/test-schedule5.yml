@@ -1,4 +1,4 @@
-name: Echo cada 15 min
+name: Echo cada 5 min
 
 on:
   schedule:
