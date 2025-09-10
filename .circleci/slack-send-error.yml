@@ -1,17 +1,20 @@
-
-# .circleci/config.yml
 version: 2.1
 
+parameters:
+  mensaje:
+    type: string
+    default: "Hola Mundo"
+
 jobs:
-  hola-mundo:
+  imprimir:
     docker:
-      - image: cimg/base:stable   # Imagen básica de CircleCI
+      - image: cimg/base:stable
     steps:
       - run:
-          name: Imprimir Hola Mundo
-          command: echo "Hola Mundo"
+          name: Imprimir mensaje
+          command: echo "<< pipeline.parameters.mensaje >>"
 
 workflows:
-  hola-workflow:
+  ejemplo:
     jobs:
-      - hola-mundo
+      - imprimir
