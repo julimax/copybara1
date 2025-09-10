@@ -15,6 +15,7 @@ jobs:
               -d '{
                 "definition_id": "e13d0ea7-c0ad-4133-bf54-1036670580a7",
                 "config": { "branch": "main" },
+                "checkout": { "branch": "main" },
                 "parameters": {
                   "objetivo": "imprimir",
                   "mensaje": "Hola Juli desde el pipeline A 🚀"
