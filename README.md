@@ -7,8 +7,6 @@ https://central.sonatype.org/publish/requirements/
 java -jar build/libs/copybara-1.0.7.jar 
 
  
-
- 
 https://github.com/CircleCI-Public/slack-orb/wiki/Setup  
 https://api.slack.com/apps
 
