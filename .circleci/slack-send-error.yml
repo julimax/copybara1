@@ -1,1 +1,17 @@
 
+# .circleci/config.yml
+version: 2.1
+
+jobs:
+  hola-mundo:
+    docker:
+      - image: cimg/base:stable   # Imagen básica de CircleCI
+    steps:
+      - run:
+          name: Imprimir Hola Mundo
+          command: echo "Hola Mundo"
+
+workflows:
+  hola-workflow:
+    jobs:
+      - hola-mundo
