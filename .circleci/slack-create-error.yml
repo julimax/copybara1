@@ -1,1 +1,23 @@
-.
+version: 2.1
+
+jobs:
+  trigger-pipeline-b:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Disparar pipeline B con parámetros
+          command: |
+            curl -X POST \
+              -u "${CIRCLE_TOKEN}:" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "parameters": {
+                  "mensaje": "Hola Juli desde el pipeline A 🚀"
+                }
+              }' \
+              "https://circleci.com/api/v2/project/gh/<org>/<repoB>/pipeline"
+workflows:
+  trigger:
+    jobs:
+      - trigger-pipeline-b
