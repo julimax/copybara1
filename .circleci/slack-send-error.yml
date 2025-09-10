@@ -16,5 +16,7 @@ jobs:
 
 workflows:
   ejemplo:
+    when:
+      equal: [ "imprimir", << pipeline.parameters.objetivo >> ]
     jobs:
       - imprimir
