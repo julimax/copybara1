@@ -17,7 +17,6 @@ jobs:
                 "config": { "branch": "main" },
                 "checkout": { "branch": "main" },
                 "parameters": {
-                  "objetivo": "imprimir",
                   "mensaje": "Hola Juli desde el pipeline A 🚀"
                 }
               }' \
