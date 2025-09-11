@@ -27,7 +27,7 @@ jobs:
           command: |
             # 1) Get latest pipeline id of A
             PIPE_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
-              "https://circleci.com/api/v2/project/circleci/<ORG_ID_A>/<PROJECT_ID_A>/pipeline?branch=main" \
+              "https://circleci.com/api/v2/project/circleci/2d9dcac2-9735-4929-b3d2-bb133465bc4d/55d9b29f-731e-40df-8c77-170ec5493e4b/pipeline?branch=main" \
               | jq -r '.items[0].id')
             
             # 2) Get workflow id
