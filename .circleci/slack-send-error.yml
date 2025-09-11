@@ -30,43 +30,46 @@ jobs:
             PIPE_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/project/circleci/2d9dcac2-9735-4929-b3d2-bb133465bc4d/55d9b29f-731e-40df-8c77-170ec5493e4b/pipeline?branch=main" \
               | jq -r '.items[0].id')
+            echo "PIPE_ID=$PIPE_ID"
             
             # 2) Get workflow id
             echo "get workflow id"
             WF_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/pipeline/$PIPE_ID/workflow" \
               | jq -r '.items[0].id')
+            echo "WF_ID=$WF_ID"
             
-            # 3) Get job number
-            echo "get job id"
+            # 3) Get a job that actually has a job_number
+            echo "get job number"
             JOB_NUM=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/workflow/$WF_ID/job" \
-              | jq -r '.items[0].job_number')
+              | jq -r '.items[] | select(.job_number != null) | .job_number' | head -n1)
+            echo "JOB_NUM=$JOB_NUM"
             
-            # 4) Show available step names (to verify the exact string)
+            # 4) List available steps (v1.1). If jq fails, print raw response for debugging.
             echo "available steps:"
-            curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+            RESP=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
-            | jq -r '.steps[].name'
+              || true)
+            echo "$RESP" | jq -r '.steps[].name' || { echo "Raw response:"; echo "$RESP"; exit 1; }
             
-            # 5) Pick the step by a case-insensitive match and get its output_url
-            STEP_PATTERN="Previous echo"  # <- change this to a substring you see above
-            OUTPUT_URL=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
-              "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
-            | jq -r --arg pat "$STEP_PATTERN" '
-                .steps[]
-                | select(.name | test($pat; "i"))
-                | .actions[] | select(.output_url != null) | .output_url
-              ' | head -n1)
+            # 5) Pick step by a simple case-insensitive pattern and print its log
+            STEP_PATTERN="Previous echo"  # <-- change to match a name you saw listed above
+            OUTPUT_URL=$(echo "$RESP" | jq -r --arg pat "$STEP_PATTERN" '
+              .steps[] | select(.name | test($pat; "i")) | .actions[] | select(.output_url != null) | .output_url
+            ' | head -n1)
             
-            # 6) Print the log (avoid jq null error)
             if [ -z "$OUTPUT_URL" ]; then
-              echo "No step matched pattern: $STEP_PATTERN"
+              echo "No step matched pattern: $STEP_PATTERN (or step has no output_url)."
               exit 0
             fi
             
+            # Some output URLs require token in query param; try header first, then query
             curl -s -H "Circle-Token: $CIRCLE_TOKEN" "$OUTPUT_URL" \
-              | jq -r '.[].message // .[].out // empty'
+              | jq -r '.[].message // .[].out // empty' \
+              || curl -s "${OUTPUT_URL}?circle-token=${CIRCLE_TOKEN}" \
+                 | jq -r '.[].message // .[].out // empty'
+
 
 
 
