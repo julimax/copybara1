@@ -9,7 +9,7 @@ jobs:
       - run:
           name: Previous echo
           command: |
-          echo "This is the previous message"
+            echo "This is the previous message"
       - run:
           name: Activate pipeline b
           command: |
