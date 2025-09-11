@@ -21,6 +21,33 @@ jobs:
       - run:
           name: Print message
           command: echo "<< pipeline.parameters.message >>"
+          
+      - run:
+          name: Print message
+          command: |
+            # 1) Get latest pipeline id of A
+            PIPE_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+              "https://circleci.com/api/v2/project/circleci/<ORG_ID_A>/<PROJECT_ID_A>/pipeline?branch=main" \
+              | jq -r '.items[0].id')
+            
+            # 2) Get workflow id
+            WF_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+              "https://circleci.com/api/v2/pipeline/$PIPE_ID/workflow" \
+              | jq -r '.items[0].id')
+            
+            # 3) Get job number
+            JOB_NUM=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+              "https://circleci.com/api/v2/workflow/$WF_ID/job" \
+              | jq -r '.items[0].job_number')
+            
+            # 4) Get step log (replace "Echo previo" with your step name)
+            OUTPUT_URL=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+              "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
+              | jq -r '.steps[] | select(.name=="Echo previo") | .actions[0].output_url')
+            
+            # 5) Print the log
+            curl -s -H "Circle-Token: $CIRCLE_TOKEN" "$OUTPUT_URL" | jq -r '.[].message'
+
 
 workflows:
   example:
