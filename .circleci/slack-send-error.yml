@@ -23,7 +23,7 @@ jobs:
           command: echo "<< pipeline.parameters.message >>"
           
       - run:
-          name: Print message
+          name: Print Logs
           command: |
             # 1) Get latest pipeline id of A
             PIPE_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
