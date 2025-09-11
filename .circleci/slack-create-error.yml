@@ -7,6 +7,10 @@ jobs:
       - image: cimg/base:stable
     steps:
       - run:
+          name: Previous echo
+          command: |
+          echo "This is the previous message"
+      - run:
           name: Activate pipeline b
           command: |
             curl -X POST \
@@ -17,7 +21,7 @@ jobs:
                 "config": { "branch": "main" },
                 "checkout": { "branch": "main" },
                 "parameters": {
-                  "message": "Hola Juli desde el pipeline A 🚀"
+                  "message": "Hi from pipeline A 🚀"
                 }
               }' \
               https://circleci.com/api/v2/project/circleci/2d9dcac2-9735-4929-b3d2-bb133465bc4d/55d9b29f-731e-40df-8c77-170ec5493e4b/pipeline/run
