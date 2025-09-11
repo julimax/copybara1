@@ -26,21 +26,25 @@ jobs:
           name: Print Logs
           command: |
             # 1) Get latest pipeline id of A
+            echo "get pipeline id"
             PIPE_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/project/circleci/2d9dcac2-9735-4929-b3d2-bb133465bc4d/55d9b29f-731e-40df-8c77-170ec5493e4b/pipeline?branch=main" \
               | jq -r '.items[0].id')
             
             # 2) Get workflow id
+            echo "get workflow id"
             WF_ID=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/pipeline/$PIPE_ID/workflow" \
               | jq -r '.items[0].id')
             
             # 3) Get job number
+            echo "get job id"
             JOB_NUM=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v2/workflow/$WF_ID/job" \
               | jq -r '.items[0].job_number')
             
             # 4) Get step log (replace "Echo previo" with your step name)
+            echo "get log id"
             OUTPUT_URL=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
               | jq -r '.steps[] | select(.name=="Echo previo") | .actions[0].output_url')
