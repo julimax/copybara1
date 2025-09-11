@@ -43,14 +43,31 @@ jobs:
               "https://circleci.com/api/v2/workflow/$WF_ID/job" \
               | jq -r '.items[0].job_number')
             
-            # 4) Get step log
-            echo "get log id"
+            # 4) Show available step names (to verify the exact string)
+            echo "available steps:"
+            curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
+              "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
+            | jq -r '.steps[].name'
+            
+            # 5) Pick the step by a case-insensitive match and get its output_url
+            STEP_PATTERN="Previous echo"  # <- change this to a substring you see above
             OUTPUT_URL=$(curl -s -H "Circle-Token: $CIRCLE_TOKEN" \
               "https://circleci.com/api/v1.1/project/github/julimax/copybara1/$JOB_NUM" \
-              | jq -r '.steps[] | select(.name=="Previous echo") | .actions[0].output_url')
+            | jq -r --arg pat "$STEP_PATTERN" '
+                .steps[]
+                | select(.name | test($pat; "i"))
+                | .actions[] | select(.output_url != null) | .output_url
+              ' | head -n1)
             
-            # 5) Print the log
-            curl -s -H "Circle-Token: $CIRCLE_TOKEN" "$OUTPUT_URL" | jq -r '.[].message'
+            # 6) Print the log (avoid jq null error)
+            if [ -z "$OUTPUT_URL" ]; then
+              echo "No step matched pattern: $STEP_PATTERN"
+              exit 0
+            fi
+            
+            curl -s -H "Circle-Token: $CIRCLE_TOKEN" "$OUTPUT_URL" \
+              | jq -r '.[].message // .[].out // empty'
+
 
 
 workflows:
