@@ -1,20 +1,28 @@
+# Repo B — .circleci/config.yml
 version: 2.1
 
 parameters:
-  mensaje:
+  message:
     type: string
-    default: "Hola Mundo"
+    default: "Hello World"
 
 jobs:
-  imprimir:
+  print:
     docker:
       - image: cimg/base:stable
     steps:
       - run:
-          name: Imprimir mensaje
-          command: echo "<< pipeline.parameters.mensaje >>"
+          name: Who triggered me?
+          command: |
+            sudo apt-get update -y && sudo apt-get install -y jq
+            curl -sS -H "Circle-Token: ${CIRCLE_TOKEN}" \
+              "https://circleci.com/api/v2/pipeline/${CIRCLE_PIPELINE_ID}" \
+            | jq -r '"actor=\(.trigger.actor.login) type=\(.trigger.type) created_at=\(.created_at)"'
+      - run:
+          name: Print message
+          command: echo "<< pipeline.parameters.message >>"
 
 workflows:
-  ejemplo:
+  example:
     jobs:
-      - imprimir
+      - print
