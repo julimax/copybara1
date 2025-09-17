@@ -1,6 +1,7 @@
 core.workflow(
     name = "sync_to_dest",
-    mode = "ITERATIVE",
+    #mode = "ITERATIVE",
+    mode = "CHANGE_REQUEST",
     origin = git.github_origin(
         url = "git@github.com:julimax/copybara1.git",
         ref = "main",
