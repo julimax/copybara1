@@ -10,7 +10,7 @@ core.workflow(
         push = "refs/heads/sync",
     ),
     #origin_files = glob(["README.md"]),
-    origin_files = glob(["**"])
+    origin_files = glob(["**"]),
     authoring = authoring.pass_thru("Julimax <julimax951@gmail.com>"),
     transformations = [],
 )
