@@ -70,4 +70,4 @@ jobs:
       - name: Run Copybara
         working-directory: copybara
         run: |
-          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest
+          ./bazel-bin/java/com/google/copybara/copybara ../copy.bara.sky sync_to_dest --init-history
