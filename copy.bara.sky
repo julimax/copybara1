@@ -9,7 +9,8 @@ core.workflow(
         url = "git@github.com:julimax/copybara2.git",
         push = "refs/heads/sync",
     ),
-    origin_files = glob(["README.md"]),
+    #origin_files = glob(["README.md"]),
+    origin_files = glob(["**"])
     authoring = authoring.pass_thru("Julimax <julimax951@gmail.com>"),
     transformations = [],
 )
