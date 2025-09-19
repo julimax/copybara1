@@ -1,4 +1,4 @@
-# copybara1 -
+# copybara1 --
 https://central.sonatype.org/publish/requirements/
 
 
