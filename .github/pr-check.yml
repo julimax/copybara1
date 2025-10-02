@@ -1,0 +1,39 @@
+name: Validate PR Issue Link
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  validate-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write   # necesario para comentar en PR
+      issues: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PR has linked issue
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+
+          echo "🔎 Validando PR #$PR_NUMBER en $REPO"
+
+          # Buscar issues vinculados al PR
+          ISSUES=$(gh api \
+            repos/$REPO/pulls/$PR_NUMBER/issues \
+            --jq '.[].number' || true)
+
+          if [ -z "$ISSUES" ]; then
+            echo "❌ El PR #$PR_NUMBER no tiene issue asociado. Publicando comentario..."
+
+            gh api repos/$REPO/issues/$PR_NUMBER/comments \
+              -f body="⚠️ Este Pull Request no tiene un issue vinculado.  
+              Por favor asocia un Issue para cumplir con el flujo de trabajo."
+          else
+            echo "✅ El Pull Request está vinculado al/los issue(s): $ISSUES"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
