@@ -10,27 +10,56 @@ jobs:
     permissions:
       pull-requests: write  
       issues: read
+
     steps:
-      - name: Validate PR has linked issue
-        run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          REPO=${{ github.repository }}
-
-          echo "🔎 Validando PR #$PR_NUMBER en $REPO"
-
-          # Buscar issues vinculados al PR
-          ISSUES=$(gh api \
-            repos/$REPO/pulls/$PR_NUMBER/issues \
-            --jq '.[].number' || true)
-
-          if [ -z "$ISSUES" ]; then
-            echo "❌ El PR #$PR_NUMBER no tiene issue asociado. Publicando comentario..."
-
-            gh api repos/$REPO/issues/$PR_NUMBER/comments \
-              -f body="⚠️ Este Pull Request no tiene un issue vinculado.  
-              Por favor asocia un Issue para cumplir con el flujo de trabajo."
-          else
-            echo "✅ El Pull Request está vinculado al/los issue(s): $ISSUES"
-          fi
+      - name: Check linked issues via GraphQL
+        id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          # Consulta GraphQL: closingIssuesReferences (issues que se cerrarían al merge)
+          DATA=$(gh api graphql -f query='
+            query($owner:String!, $repo:String!, $pr:Int!){
+              repository(owner:$owner, name:$repo){
+                pullRequest(number:$pr){
+                  closingIssuesReferences(first:20){
+                    totalCount
+                    nodes { number url title }
+                  }
+                }
+              }
+            }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUMBER")
+
+          COUNT=$(printf '%s' "$DATA" | jq -r '.data.repository.pullRequest.closingIssuesReferences.totalCount')
+
+          if [ "$COUNT" = "0" ] || [ -z "$COUNT" ]; then
+            echo "none=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "none=false" >> "$GITHUB_OUTPUT"
+            printf '%s' "$DATA" | jq -r '
+              .data.repository.pullRequest.closingIssuesReferences.nodes
+              | map("#\(.number) - \(.title) (\(.url))")[]' \
+              > issues.txt
+            echo "list<<EOF" >> "$GITHUB_OUTPUT"
+            cat issues.txt >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment if missing issue link
+        if: steps.check.outputs.none == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
+        run: |
+          gh api repos/$REPO_FULL/issues/$PR_NUMBER/comments \
+            -f body=$'⚠️ Este Pull Request no tiene un issue asociado mediante keywords.\n\nAñade en la descripción algo como **Closes #123** / **Fixes #123** / **Resolves #123** para vincularlo correctamente.'
+
+      - name: Log found issues (optional)
+        if: steps.check.outputs.none == 'false'
+        run: |
+          echo "✅ Issues vinculados (por keywords):"
+          echo "${{ steps.check.outputs.list }}"
