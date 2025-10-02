@@ -8,12 +8,9 @@ jobs:
   validate-issue:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write   # necesario para comentar en PR
+      pull-requests: write  
       issues: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Validate PR has linked issue
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
