@@ -2,7 +2,7 @@ name: Validate PR Issue Link
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened]  
 
 jobs:
   validate-issue:
@@ -20,7 +20,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
         run: |
-          # Consulta GraphQL: closingIssuesReferences (issues que se cerrarían al merge)
+          # GraphQL: issues that would be closed by merging this PR (via closes/fixes/resolves)
           DATA=$(gh api graphql -f query='
             query($owner:String!, $repo:String!, $pr:Int!){
               repository(owner:$owner, name:$repo){
@@ -43,12 +43,25 @@ jobs:
               .data.repository.pullRequest.closingIssuesReferences.nodes
               | map("#\(.number) - \(.title) (\(.url))")[]' \
               > issues.txt
-            echo "list<<EOF" >> "$GITHUB_OUTPUT"
-            cat issues.txt >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+            {
+              echo "list<<EOF"
+              cat issues.txt
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Comment if missing issue link
+      - name: Status — PR has linked issue(s)
+        if: steps.check.outputs.none == 'false'
+        run: |
+          echo "✅ PR has linked issue(s):"
+          echo "${{ steps.check.outputs.list }}"
+
+      - name: Status — PR has no linked issues
+        if: steps.check.outputs.none == 'true'
+        run: |
+          echo "⚠️ PR has no linked issues."
+
+      - name: Comment on PR if missing issue link
         if: steps.check.outputs.none == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,10 +69,4 @@ jobs:
           REPO_FULL: ${{ github.repository }}
         run: |
           gh api repos/$REPO_FULL/issues/$PR_NUMBER/comments \
-            -f body=$'⚠️ Este Pull Request no tiene un issue asociado mediante keywords.\n\nAñade en la descripción algo como **Closes #123** / **Fixes #123** / **Resolves #123** para vincularlo correctamente.'
-
-      - name: Log found issues (optional)
-        if: steps.check.outputs.none == 'false'
-        run: |
-          echo "✅ Issues vinculados (por keywords):"
-          echo "${{ steps.check.outputs.list }}"
+            -f body=$'⚠️ This Pull Request has no linked issue (via keywords).\n\nPlease add something like **Closes #123** / **Fixes #123** / **Resolves #123** in the PR description to properly link it.'
