@@ -2,7 +2,7 @@ name: Validate PR Issue Link
 
 on:
   pull_request:
-    types: [opened]  
+    types: [opened] 
 
 jobs:
   validate-issue:
@@ -12,61 +12,49 @@ jobs:
       issues: read
 
     steps:
-      - name: Check linked issues via GraphQL
-        id: check
+      - name: Scan PR description for Issue URL(s)
+        id: scan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
+          REPO_FULL: ${{ github.repository }}
         run: |
-          # GraphQL: issues that would be closed by merging this PR (via closes/fixes/resolves)
-          DATA=$(gh api graphql -f query='
-            query($owner:String!, $repo:String!, $pr:Int!){
-              repository(owner:$owner, name:$repo){
-                pullRequest(number:$pr){
-                  closingIssuesReferences(first:20){
-                    totalCount
-                    nodes { number url title }
-                  }
-                }
-              }
-            }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUMBER")
+          # Fetch PR body safely (handles null -> empty string)
+          BODY=$(gh api repos/$REPO_FULL/pulls/$PR_NUMBER --jq '.body // ""')
 
-          COUNT=$(printf '%s' "$DATA" | jq -r '.data.repository.pullRequest.closingIssuesReferences.totalCount')
+          # Look for direct GitHub Issue links (any org/repo)
+          URLS=$(printf '%s\n' "$BODY" \
+            | grep -Eo 'https://github\.com/[[:alnum:]_.-]+/[[:alnum:]_.-]+/issues/[0-9]+' \
+            | sort -u)
 
-          if [ "$COUNT" = "0" ] || [ -z "$COUNT" ]; then
+          if [ -z "$URLS" ]; then
             echo "none=true" >> "$GITHUB_OUTPUT"
           else
             echo "none=false" >> "$GITHUB_OUTPUT"
-            printf '%s' "$DATA" | jq -r '
-              .data.repository.pullRequest.closingIssuesReferences.nodes
-              | map("#\(.number) - \(.title) (\(.url))")[]' \
-              > issues.txt
             {
               echo "list<<EOF"
-              cat issues.txt
+              echo "$URLS"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Status — PR has linked issue(s)
-        if: steps.check.outputs.none == 'false'
+      - name: Status — PR has Issue URL(s)
+        if: steps.scan.outputs.none == 'false'
         run: |
-          echo "✅ PR has linked issue(s):"
-          echo "${{ steps.check.outputs.list }}"
+          echo "✅ PR description contains Issue URL(s):"
+          echo "${{ steps.scan.outputs.list }}"
 
-      - name: Status — PR has no linked issues
-        if: steps.check.outputs.none == 'true'
+      - name: Status — PR has no Issue URL
+        if: steps.scan.outputs.none == 'true'
         run: |
-          echo "⚠️ PR has no linked issues."
+          echo "⚠️ PR description contains no direct Issue URL."
 
-      - name: Comment on PR if missing issue link
-        if: steps.check.outputs.none == 'true'
+      - name: Comment on PR if missing Issue URL
+        if: steps.scan.outputs.none == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL: ${{ github.repository }}
         run: |
           gh api repos/$REPO_FULL/issues/$PR_NUMBER/comments \
-            -f body=$'⚠️ This Pull Request has no linked issue (via keywords).\n\nPlease add something like **Closes #123** / **Fixes #123** / **Resolves #123** in the PR description to properly link it.'
+            -f body=$'⚠️ This Pull Request does not include a direct Issue link in its description.\n\nPlease add a URL to a GitHub Issue, for example:\nhttps://github.com/owner/repo/issues/123\n\n(Optional) You can also use keywords like **Closes #123**, but this check only looks for direct links.'
