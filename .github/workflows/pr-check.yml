@@ -24,7 +24,7 @@ jobs:
 
           # Look for direct GitHub Issue links (any org/repo)
           URLS=$(printf '%s\n' "$BODY" \
-            | grep -Eo 'https://github\.com/[[:alnum:]_.-]+/[[:alnum:]_.-]+/issues/[0-9]+' \
+            | grep -Eo 'https://github\.com/julimax/copybara1/issues/[0-9]+' \
             | sort -u)
 
           if [ -z "$URLS" ]; then
