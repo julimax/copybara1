@@ -1,7 +1,7 @@
 # copybara1
 https://central.sonatype.org/publish/requirements/
 
-
+s
 ./gradlew clean build
 ./gradlew run
 java -jar build/libs/copybara-1.0.7.jar 
