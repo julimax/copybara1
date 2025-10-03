@@ -61,6 +61,7 @@ jobs:
 
 
       - name: Update labels based on result
+        if: false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -135,7 +136,8 @@ jobs:
           fi
 
       - name: replace "in review" → "create patch"
-        if: github.event.action == 'synchronize'
+        if: false
+        #if: github.event.action == 'synchronize'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -171,4 +173,74 @@ jobs:
             gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
           else
             echo "Label '$OLD_LABEL' is not present. Nothing to do."
+          fi
+
+
+      - name: Manage labels (issue-linked/review me/create patch + synchronize behavior)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
+          ACTION: ${{ github.event.action }}
+          LABEL_OK: "issue-linked ✅"
+          LABEL_MISSING: "needs-issue ❗"
+          LABEL_REVIEW: "review me"
+          LABEL_CREATE: "create patch"
+          LABEL_INREVIEW: "in review"
+        run: |
+          set -e
+
+          # URL-encode for DELETE endpoints
+          uri() { jq -rn --arg s "$1" '$s|@uri'; }
+
+          # Ensure labels exist (best-effort)
+          ensure_label() {
+            local name="$1" color="$2"
+            if ! gh api repos/$REPO_FULL/labels --paginate --jq '.[].name' | grep -Fxq "$name"; then
+              gh api -X POST "repos/$REPO_FULL/labels" -f name="$name" -f color="$color" >/dev/null 2>&1 || true
+            fi
+          }
+          ensure_label "$LABEL_OK" "2ea043"       # green
+          ensure_label "$LABEL_MISSING" "d73a4a"  # red
+          ensure_label "$LABEL_REVIEW" "0366d6"   # blue
+          ensure_label "$LABEL_CREATE" "6f42c1"   # purple
+
+          # Helpers
+          refresh() { CURRENT=$(gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name'); }
+          has() { grep -Fxq "$1" <<< "$CURRENT"; }
+          add() { gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$1" >/dev/null; }
+          del() { gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$(uri "$1")" >/dev/null 2>&1 || true; }
+
+          refresh
+
+          # 1) Regla base según presencia de link
+          if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
+            # Link presente → asegurar issue-linked, quitar needs-issue
+            has "$LABEL_OK" || add "$LABEL_OK"
+            if has "$LABEL_MISSING"; then del "$LABEL_MISSING"; fi
+            refresh
+
+            # Exclusión con create patch: si existe create patch → no poner review me (y remover si estaba)
+            if has "$LABEL_CREATE"; then
+              if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
+            else
+              # Solo agregar review me si existe issue-linked y NO existe create patch
+              if has "$LABEL_OK" && ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
+            fi
+          else
+            # Sin link → needs-issue; quitar issue-linked y review me
+            has "$LABEL_MISSING" || add "$LABEL_MISSING"
+            if has "$LABEL_OK"; then del "$LABEL_OK"; fi
+            if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
+          fi
+
+          refresh
+
+          # 2) Comportamiento extra en synchronize: in review -> create patch, y remover review me
+          if [ "$ACTION" = "synchronize" ] && has "$LABEL_INREVIEW"; then
+            has "$LABEL_CREATE" || add "$LABEL_CREATE"
+            del "$LABEL_INREVIEW"
+            # En synchronize, si queda create patch, enforce exclusividad removiendo review me
+            refresh
+            if has "$LABEL_CREATE" && has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
           fi
