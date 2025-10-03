@@ -58,3 +58,23 @@ jobs:
         run: |
           gh api repos/$REPO_FULL/issues/$PR_NUMBER/comments \
             -f body=$'⚠️ This Pull Request does not include a direct Issue link in its description.\n\nPlease add a URL to a GitHub Issue, for example:\nhttps://github.com/owner/repo/issues/123\n\n(Optional) You can also use keywords like **Closes #123**, but this check only looks for direct links.'
+
+      - name: Update PR title with OK checkmark
+        if: steps.scan.outputs.none == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
+        run: |
+          CURRENT=$(gh api repos/$REPO_FULL/pulls/$PR_NUMBER --jq '.title // ""')
+          PREFIX="✅ "
+
+          # Avoid duplicating the checkmark
+          if printf '%s' "$CURRENT" | grep -q '✅'; then
+            echo "Title already contains checkmark. Skipping."
+            exit 0
+          fi
+
+          NEW_TITLE="${PREFIX}${CURRENT}"
+          gh api -X PATCH repos/$REPO_FULL/pulls/$PR_NUMBER -f title="$NEW_TITLE"
+          echo "Updated title to: $NEW_TITLE"
