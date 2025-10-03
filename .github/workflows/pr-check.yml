@@ -60,7 +60,8 @@ jobs:
             -f body=$'⚠️ This Pull Request does not include a direct Issue link in its description.\n\nPlease add a URL to a GitHub Issue, for example:\nhttps://github.com/owner/repo/issues/123\n\n(Optional) You can also use keywords like **Closes #123**, but this check only looks for direct links.'
 
       - name: Update PR title with OK checkmark
-        if: steps.scan.outputs.none == 'false'
+        if: false
+        #if: steps.scan.outputs.none == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -78,3 +79,57 @@ jobs:
           NEW_TITLE="${CURRENT} ${PREFIX}"
           gh api -X PATCH repos/$REPO_FULL/pulls/$PR_NUMBER -f title="$NEW_TITLE"
           echo "Updated title to: $NEW_TITLE"
+
+
+      - name: Update labels based on result
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL: ${{ github.repository }}
+          LABEL_OK: "issue-linked ✅"
+          LABEL_MISSING: "needs-issue ❗"
+        run: |
+          set -e
+
+          # Helper: URL-encode with jq
+          uri() { jq -rn --arg s "$1" '$s|@uri'; }
+
+          # Ensure labels exist (best-effort; ignore failure)
+          ensure_label() {
+            local name="$1" color="$2"
+            if ! gh api repos/$REPO_FULL/labels --paginate --jq '.[].name' | grep -Fxq "$name"; then
+              gh api -X POST repos/$REPO_FULL/labels -f name="$name" -f color="$color" || true
+            fi
+          }
+
+          ensure_label "$LABEL_OK" "2ea043"   # greenish
+          ensure_label "$LABEL_MISSING" "d73a4a"  # red
+
+          # Current labels on the PR
+          CURRENT=$(gh api repos/$REPO_FULL/issues/$PR_NUMBER/labels --jq '.[].name')
+
+          has_label() { grep -Fxq "$1" <<< "$CURRENT"; }
+
+          if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
+            echo "Link found → add '$LABEL_OK', remove '$LABEL_MISSING' if present."
+
+            if ! has_label "$LABEL_OK"; then
+              gh api repos/$REPO_FULL/issues/$PR_NUMBER/labels -f labels[]="$LABEL_OK"
+            fi
+
+            if has_label "$LABEL_MISSING"; then
+              ENC=$(uri "$LABEL_MISSING")
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
+            fi
+          else
+            echo "No link → add '$LABEL_MISSING', remove '$LABEL_OK' if present."
+
+            if ! has_label "$LABEL_MISSING"; then
+              gh api repos/$REPO_FULL/issues/$PR_NUMBER/labels -f labels[]="$LABEL_MISSING"
+            fi
+
+            if has_label "$LABEL_OK"; then
+              ENC=$(uri "$LABEL_OK")
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
+            fi
+          fi
