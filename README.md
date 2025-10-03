@@ -15,7 +15,7 @@ https://bukialo.slack.com/marketplace/A0F7VRE7N-circleci
 important invite bot to the channel
   
 
-#####################################################
+##################################################### 
 
 # On the runner machine, run as root or with sudo:
 sudo usermod -aG docker circleci
