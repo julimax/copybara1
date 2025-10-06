@@ -29,7 +29,7 @@ ls -la /var/run/docker.sock
 sudo chmod 666 /var/run/docker.sock
 # Or better, ensure the docker group owns it:
 sudo chown root:docker /var/run/docker.sock
-sudo chmod 660 /var/run/docker.sock
+sudo chmod 660 /var/run/docker.sock 
 
 # Restart the runner to pick up new group membership:
 sudo systemctl restart circleci-runner
