@@ -109,7 +109,7 @@ jobs:
               if has "$LABEL_OK" && ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
             fi
           else
-            # No link → needs-issue; remove issue-linked and review me
+            # No link → needs-issue; remove issue-linked and review me / create patch
             has "$LABEL_MISSING" || add "$LABEL_MISSING"
             if has "$LABEL_OK"; then del "$LABEL_OK"; fi
             if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
