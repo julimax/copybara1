@@ -9,7 +9,7 @@ fun main() {
     println("Aplicación: $nombre v$version")
     
     // Ejemplo de función simple
-    saludar("Desarrollador")
+    saludar("Desarrollador") 
 }
 
 fun saludar(nombre: String) {
