@@ -21,7 +21,7 @@ important invite bot to the channel
 sudo usermod -aG docker circleci
 # Or if using a different user:
 sudo usermod -aG docker $(whoami)
-
+ 
 # Check current permissions:
 ls -la /var/run/docker.sock
 
