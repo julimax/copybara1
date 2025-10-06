@@ -64,9 +64,9 @@ jobs:
           REPO_FULL: ${{ github.repository }}
           ACTION: ${{ github.event.action }}
           LABEL_MISSING: "needs-issue ❗"
-          LABEL_REVIEW: "review me"
-          LABEL_CREATE: "create patch"
-          LABEL_INREVIEW: "in review"
+          LABEL_REVIEW: "ready-to-go"
+          LABEL_CREATE: "create-patch"
+          LABEL_INREVIEW: "in-review"
         run: |
           set -e
 
