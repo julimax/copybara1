@@ -142,8 +142,8 @@ jobs:
           fi
 
       - name: replace "in review" → "create patch"
-        if: false
-        #if: github.event.action == 'synchronize'
+        #if: false
+        if: github.event.action == 'synchronize'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
