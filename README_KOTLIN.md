@@ -10,7 +10,7 @@ Una aplicación básica de "Hola Mundo" en Kotlin dentro del proyecto Copybara.
 
 ## Requisitos
 
-- Java 11 o superior
+- Java 11 o superior 
 - Kotlin compiler (kotlinc) o Gradle
 
 ## Ejecutar la aplicación
