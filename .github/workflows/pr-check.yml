@@ -1,5 +1,3 @@
-name: Validate PR Issue Link
-
 on:
   pull_request_target:
     types: [opened, reopened, edited, synchronize]
@@ -61,6 +59,7 @@ jobs:
 
 
       - name: Update labels based on result
+        if: false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -81,38 +80,62 @@ jobs:
             fi
           }
 
-
-          delete_label() {
-            local name="$1"
-            local encoded
-            encoded=$(uri "$name")
-            # Solo intentar quitar si el PR lo tiene
-            if gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name' | grep -Fxq "$name"; then
-              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$encoded"
-            fi
-          }
-
           # Ensure labels exist in the repository (colors: green, red, blue)
-          #ensure_label "$LABEL_OK" "2ea043"
-          #ensure_label "$LABEL_MISSING" "d73a4a"
-          #ensure_label "$LABEL_REVIEW" "0366d6"
+          ensure_label "$LABEL_OK" "2ea043"
+          ensure_label "$LABEL_MISSING" "d73a4a"
+          ensure_label "$LABEL_REVIEW" "0366d6"
 
+          # Helper to read current labels and test membership
+          refresh_labels() {
+            CURRENT=$(gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name')
+          }
+          has_label() { grep -Fxq "$1" <<< "$CURRENT"; }
 
-          #######################################################################
+          refresh_labels
 
           if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
-            ensure_label "$LABEL_OK" "2ea043"
-            ensure_label "$LABEL_REVIEW" "0366d6"
-            delete_label "needs-issue ❗"
-          else 
-            ensure_label "$LABEL_MISSING" "d73a4a"
-            delete_label "issue-linked ✅"
-            delete_label "review me"
+            echo "Link found → ensure '$LABEL_OK'; remove '$LABEL_MISSING'. Then add '$LABEL_REVIEW' only if '$LABEL_OK' is present."
+
+            # Ensure OK label present
+            if ! has_label "$LABEL_OK"; then
+              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_OK"
+            fi
+
+            # Remove MISSING if present
+            if has_label "$LABEL_MISSING"; then
+              ENC=$(uri "$LABEL_MISSING")
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
+            fi
+
+            # Re-check labels AFTER potential changes
+            refresh_labels
+
+            # Add REVIEW ONLY if OK is present (and avoid duplicates)
+            if has_label "$LABEL_OK" && ! has_label "$LABEL_REVIEW"; then
+              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_REVIEW"
+            fi
+
+          else
+            echo "No link → add '$LABEL_MISSING'; remove '$LABEL_OK' and '$LABEL_REVIEW' if present."
+
+            if ! has_label "$LABEL_MISSING"; then
+              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_MISSING"
+            fi
+
+            if has_label "$LABEL_OK"; then
+              ENC=$(uri "$LABEL_OK")
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
+            fi
+
+            if has_label "$LABEL_REVIEW"; then
+              ENC=$(uri "$LABEL_REVIEW")
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
+            fi
           fi
 
       - name: replace "in review" → "create patch"
-        #if: false
-        if: github.event.action == 'synchronize'
+        if: false
+        #if: github.event.action == 'synchronize'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -152,7 +175,6 @@ jobs:
 
 
       - name: Manage labels (issue-linked/review me/create patch + synchronize behavior)
-        if: false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -169,7 +191,7 @@ jobs:
           # URL-encode for DELETE endpoints
           uri() { jq -rn --arg s "$1" '$s|@uri'; }
 
-          # Ensure labels exist (best-effort)
+          # Ensure labels exist (best-effort) 
           ensure_label() {
             local name="$1" color="$2"
             if ! gh api repos/$REPO_FULL/labels --paginate --jq '.[].name' | grep -Fxq "$name"; then
