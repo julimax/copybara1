@@ -12,7 +12,7 @@ https://api.slack.com/apps
 
 https://bukialo.slack.com/marketplace/A0F7VRE7N-circleci
 
-important invite bot to the channel
+important invite bot to the channel 
   
 
 #####################################################
