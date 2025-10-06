@@ -95,6 +95,12 @@ jobs:
 
           refresh_labels
 
+          # ENFORCE (inicio): si existe create patch, eliminar review me inmediatamente
+          if has "$LABEL_CREATE" && has "$LABEL_REVIEW"; then
+            del "$LABEL_REVIEW"
+            refresh
+          fi
+
           if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
             echo "Link found → ensure '$LABEL_OK'; remove '$LABEL_MISSING'. Then add '$LABEL_REVIEW' only if '$LABEL_OK' is present."
 
