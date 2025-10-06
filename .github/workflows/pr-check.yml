@@ -86,13 +86,9 @@ jobs:
             local name="$1"
             local encoded
             encoded=$(uri "$name")
-
-            # Verificar si el label existe
-            if gh api repos/$REPO_FULL/labels --paginate --jq '.[].name' | grep -Fxq "$name"; then
-              echo "🗑️ Deleting label: $name"
-              gh api -X DELETE "repos/$REPO_FULL/labels/$encoded"
-            else
-              echo "ℹ️ Label '$name' does not exist, skipping"
+            # Solo intentar quitar si el PR lo tiene
+            if gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name' | grep -Fxq "$name"; then
+              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$encoded"
             fi
           }
 
@@ -112,7 +108,7 @@ jobs:
             ensure_label "$LABEL_MISSING" "d73a4a"
             delete_label "issue-linked ✅"
             delete_label "review me"
-          if
+          fi
 
       - name: replace "in review" → "create patch"
         #if: false
