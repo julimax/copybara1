@@ -10,13 +10,13 @@ java -jar build/libs/copybara-1.0.7.jar
 https://github.com/CircleCI-Public/slack-orb/wiki/Setup  
 https://api.slack.com/apps
 
-https://bukialo.slack.com/marketplace/A0F7VRE7N-circleci
+https://bukialo.slack.com/marketplace/A0F7VRE7N-circleci  
 
 important invite bot to the channel
   
 
 #####################################################
-
+ 
 # On the runner machine, run as root or with sudo:
 sudo usermod -aG docker circleci
 # Or if using a different user:

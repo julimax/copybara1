@@ -5,7 +5,7 @@
 Para que GitHub Actions pueda publicar automáticamente a Maven Central, necesitas configurar estos secrets en tu repositorio de GitHub:
 
 ### 1. Ir a GitHub Repository Settings
-1. Ve a tu repositorio en GitHub
+1. Ve a tu repositorio en GitHub 
 2. Click en **Settings** (tab superior)
 3. En el menú lateral, click en **Secrets and variables** > **Actions**
 4. Click en **New repository secret**
