@@ -113,6 +113,7 @@ jobs:
             has "$LABEL_MISSING" || add "$LABEL_MISSING"
             if has "$LABEL_OK"; then del "$LABEL_OK"; fi
             if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
+            if has "$LABEL_CREATE"; then del "$LABEL_CREATE"; fi
           fi
 
           refresh
