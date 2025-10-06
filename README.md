@@ -22,7 +22,7 @@ sudo usermod -aG docker circleci
 # Or if using a different user:
 sudo usermod -aG docker $(whoami)
 
-# Check current permissions:
+# Check current permissions: 
 ls -la /var/run/docker.sock
 
 # If needed, set proper permissions:
