@@ -104,7 +104,7 @@ jobs:
               if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
             else
               # create patch does not exist
-              ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
+              if ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
             fi
           else
             # No link → needs-issue; remove review me / create patch
