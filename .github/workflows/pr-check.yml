@@ -57,123 +57,6 @@ jobs:
           gh api repos/$REPO_FULL/issues/$PR_NUMBER/comments \
             -f body=$'⚠️ This Pull Request does not include a direct Issue link in its description.\n\nPlease add a URL to a GitHub Issue, for example:\nhttps://github.com/owner/repo/issues/123\n\n(Optional) You can also use keywords like **Closes #123**, but this check only looks for direct links.'
 
-
-      - name: Update labels based on result
-        if: false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO_FULL: ${{ github.repository }}
-          LABEL_OK: "issue-linked ✅"
-          LABEL_MISSING: "needs-issue ❗"
-          LABEL_REVIEW: "review me"
-        run: |
-          set -e
-
-          # URL-encode helper (for DELETE URLs)
-          uri() { jq -rn --arg s "$1" '$s|@uri'; }
-
-          ensure_label() {
-            local name="$1" color="$2"
-            if ! gh api repos/$REPO_FULL/labels --paginate --jq '.[].name' | grep -Fxq "$name"; then
-              gh api -X POST "repos/$REPO_FULL/labels" -f name="$name" -f color="$color"
-            fi
-          }
-
-          # Ensure labels exist in the repository (colors: green, red, blue)
-          ensure_label "$LABEL_OK" "2ea043"
-          ensure_label "$LABEL_MISSING" "d73a4a"
-          ensure_label "$LABEL_REVIEW" "0366d6"
-
-          # Helper to read current labels and test membership
-          refresh_labels() {
-            CURRENT=$(gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name')
-          }
-          has_label() { grep -Fxq "$1" <<< "$CURRENT"; }
-
-          refresh_labels
-
-          if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
-            echo "Link found → ensure '$LABEL_OK'; remove '$LABEL_MISSING'. Then add '$LABEL_REVIEW' only if '$LABEL_OK' is present."
-
-            # Ensure OK label present
-            if ! has_label "$LABEL_OK"; then
-              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_OK"
-            fi
-
-            # Remove MISSING if present
-            if has_label "$LABEL_MISSING"; then
-              ENC=$(uri "$LABEL_MISSING")
-              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
-            fi
-
-            # Re-check labels AFTER potential changes
-            refresh_labels
-
-            # Add REVIEW ONLY if OK is present (and avoid duplicates)
-            if has_label "$LABEL_OK" && ! has_label "$LABEL_REVIEW"; then
-              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_REVIEW"
-            fi
-
-          else
-            echo "No link → add '$LABEL_MISSING'; remove '$LABEL_OK' and '$LABEL_REVIEW' if present."
-
-            if ! has_label "$LABEL_MISSING"; then
-              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$LABEL_MISSING"
-            fi
-
-            if has_label "$LABEL_OK"; then
-              ENC=$(uri "$LABEL_OK")
-              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
-            fi
-
-            if has_label "$LABEL_REVIEW"; then
-              ENC=$(uri "$LABEL_REVIEW")
-              gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
-            fi
-          fi
-
-      - name: replace "in review" → "create patch"
-        if: false
-        #if: github.event.action == 'synchronize'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO_FULL: ${{ github.repository }}
-          OLD_LABEL: "in review"
-          NEW_LABEL: "create patch"
-        run: |
-          set -e
-
-          # URL-encode helper for DELETE endpoints
-          uri() { jq -rn --arg s "$1" '$s|@uri'; }
-
-          # Ensure NEW_LABEL exists (best-effort)
-          if ! gh api "repos/$REPO_FULL/labels" --paginate --jq '.[].name' | grep -Fxq "$NEW_LABEL"; then
-            gh api -X POST "repos/$REPO_FULL/labels" -f name="$NEW_LABEL" -f color="6f42c1" || true
-          fi
-
-          # Current labels on the PR
-          CURRENT=$(gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" --jq '.[].name')
-
-          has_label() { grep -Fxq "$1" <<< "$CURRENT"; }
-
-          if has_label "$OLD_LABEL"; then
-            echo "Replacing label '$OLD_LABEL' → '$NEW_LABEL' due to synchronize (new commits)."
-
-            # Add NEW_LABEL if not present
-            if ! has_label "$NEW_LABEL"; then
-              gh api "repos/$REPO_FULL/issues/$PR_NUMBER/labels" -f labels[]="$NEW_LABEL"
-            fi
-
-            # Remove OLD_LABEL
-            ENC=$(uri "$OLD_LABEL")
-            gh api -X DELETE "repos/$REPO_FULL/issues/$PR_NUMBER/labels/$ENC" || true
-          else
-            echo "Label '$OLD_LABEL' is not present. Nothing to do."
-          fi
-
-
       - name: Manage labels (issue-linked/review me/create patch + synchronize behavior)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -211,22 +94,22 @@ jobs:
 
           refresh
 
-          # 1) Regla base según presencia de link
+          # 1) Base rule according to the presence of a link
           if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
-            # Link presente → asegurar issue-linked, quitar needs-issue
+            # Link present → secure issue-linked, remove needs-issue
             has "$LABEL_OK" || add "$LABEL_OK"
             if has "$LABEL_MISSING"; then del "$LABEL_MISSING"; fi
             refresh
 
-            # Exclusión con create patch: si existe create patch → no poner review me (y remover si estaba)
+            # Exclusion with create patch: if create patch exists → do not put review me (and remove if it was there)
             if has "$LABEL_CREATE"; then
               if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
             else
-              # Solo agregar review me si existe issue-linked y NO existe create patch
+              # Only add review me if issue-linked exists and create patch does not exist
               if has "$LABEL_OK" && ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
             fi
           else
-            # Sin link → needs-issue; quitar issue-linked y review me
+            # No link → needs-issue; remove issue-linked and review me
             has "$LABEL_MISSING" || add "$LABEL_MISSING"
             if has "$LABEL_OK"; then del "$LABEL_OK"; fi
             if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
@@ -234,11 +117,10 @@ jobs:
 
           refresh
 
-          # 2) Comportamiento extra en synchronize: in review -> create patch, y remover review me
+          # 2) Extra behavior in synchronize: in review -> create patch, and remove in review
           if [ "$ACTION" = "synchronize" ] && has "$LABEL_INREVIEW"; then
             has "$LABEL_CREATE" || add "$LABEL_CREATE"
             del "$LABEL_INREVIEW"
-            # En synchronize, si queda create patch, enforce exclusividad removiendo review me
             refresh
             if has "$LABEL_CREATE" && has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
           fi
