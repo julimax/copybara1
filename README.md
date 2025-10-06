@@ -7,8 +7,8 @@ https://central.sonatype.org/publish/requirements/
 java -jar build/libs/copybara-1.0.7.jar 
 
  
-https://github.com/CircleCI-Public/slack-orb/wiki/Setup  
-https://api.slack.com/apps
+https://github.com/CircleCI-Public/slack-orb/wiki/Setup  v 
+https://api.slack.com/apps 
 
 https://bukialo.slack.com/marketplace/A0F7VRE7N-circleci
 
@@ -21,7 +21,7 @@ important invite bot to the channel
 sudo usermod -aG docker circleci
 # Or if using a different user:
 sudo usermod -aG docker $(whoami)
-
+ 
 # Check current permissions:
 ls -la /var/run/docker.sock
 
