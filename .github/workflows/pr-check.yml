@@ -63,7 +63,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL: ${{ github.repository }}
           ACTION: ${{ github.event.action }}
-          LABEL_OK: "issue-linked ✅"
           LABEL_MISSING: "needs-issue ❗"
           LABEL_REVIEW: "review me"
           LABEL_CREATE: "create patch"
@@ -81,7 +80,6 @@ jobs:
               gh api -X POST "repos/$REPO_FULL/labels" -f name="$name" -f color="$color" >/dev/null 2>&1 || true
             fi
           }
-          ensure_label "$LABEL_OK" "2ea043"       # green
           ensure_label "$LABEL_MISSING" "d73a4a"  # red
           ensure_label "$LABEL_REVIEW" "0366d6"   # blue
           ensure_label "$LABEL_CREATE" "6f42c1"   # purple
@@ -96,8 +94,8 @@ jobs:
 
           # 1) Base rule according to the presence of a link
           if [ "${{ steps.scan.outputs.none }}" = "false" ]; then
-            # Link present → secure issue-linked, remove needs-issue
-            has "$LABEL_OK" || add "$LABEL_OK"
+            # Link present → remove needs-issue
+
             if has "$LABEL_MISSING"; then del "$LABEL_MISSING"; fi
             refresh
 
@@ -105,13 +103,12 @@ jobs:
             if has "$LABEL_CREATE"; then
               if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
             else
-              # Only add review me if issue-linked exists and create patch does not exist
-              if has "$LABEL_OK" && ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
+              # create patch does not exist
+              ! has "$LABEL_REVIEW"; then add "$LABEL_REVIEW"; fi
             fi
           else
-            # No link → needs-issue; remove issue-linked and review me / create patch
+            # No link → needs-issue; remove review me / create patch
             has "$LABEL_MISSING" || add "$LABEL_MISSING"
-            if has "$LABEL_OK"; then del "$LABEL_OK"; fi
             if has "$LABEL_REVIEW"; then del "$LABEL_REVIEW"; fi
             if has "$LABEL_CREATE"; then del "$LABEL_CREATE"; fi
           fi
