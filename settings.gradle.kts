@@ -5,7 +5,7 @@ plugins {
 
 develocity {
     buildScan {
-        // Acepta Términos para scans.gradle.com (necesario en CI)
+        // Acepta Términos para scans.gradle.com (necesario en CI) 
         termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
         termsOfUseAgree.set("yes")
 
