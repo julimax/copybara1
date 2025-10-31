@@ -1,0 +1,29 @@
+name: Validate Commit Message
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  commit-lint:
+    name: Validate last commit message
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Validate last commit message
+        run: |
+          msg=$(git log -1 --pretty=%B | tr -d '\n')
+          echo "📝 Commit message: $msg"
+          pattern='^(feat|fix|chore|docs|refactor|test|ci|build)(\([a-z0-9._-]+\))?: .+$'
+          if ! echo "$msg" | grep -Eq "$pattern"; then
+            echo "❌ Invalid commit message format:"
+            echo "Expected format: type(scope): description"
+            echo "Allowed types: feat, fix, chore, docs, refactor, test, ci, build"
+            echo "Example: feat(auth): add user login endpoint"
+            exit 1
+          fi
+          echo "✅ Commit message format is valid."
