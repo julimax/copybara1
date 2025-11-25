@@ -10,6 +10,6 @@ core.workflow(
         push = "refs/heads/main",
     ),
     origin_files = glob(["**"]),
-    authoring = authoring.pass_thru("User <user@noreply.com>"),
+    authoring.pass_thru(),
     transformations = [],
 )
