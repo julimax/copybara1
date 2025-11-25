@@ -55,8 +55,8 @@ jobs:
 
       - name: Set Git identity
         run: |
-          git config --global user.name "Julimax"
-          git config --global user.email "julimax951@gmail.com"
+          git config --global user.name "user"
+          git config --global user.email "user@noreply.com"
 
       - name: Setup SSH
         run: |
