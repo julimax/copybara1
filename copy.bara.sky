@@ -9,7 +9,6 @@ core.workflow(
         url = "git@github.com:$user/$repo2.git",
         push = "refs/heads/main",
     ),
-    #origin_files = glob(["README.md"]),
     origin_files = glob(["**"]),
     authoring = authoring.pass_thru("User <user@noreply.com>"),
     transformations = [],
